@@ -1,5 +1,19 @@
 services:
+  nginx:
+    container_name: ${PREFIX}-nginx
+    image: nginx:1.31.6
+    restart: unless-stopped
+    # FIXME: maybe development environment should work without SSL (do not need certs)
+    # or event without nginx
+    ports:
+      - '3443:443'
+    volumes:
+      - ./nginx:/etc/nginx
+      - ./letsencrypt:/etc/letsencrypt
+    depends_on:
+      - app
   app:
+    # FIXME: maybe configure Rails app to work on socket file instead of TCP port
     container_name: ${PREFIX}-app
     build:
       context: .
@@ -16,8 +30,6 @@ services:
       - db
       - solr
       - redis
-    ports:
-      - '3000:3000'
     volumes:
       - uploads:/code/public/system
       - logs:/code/log

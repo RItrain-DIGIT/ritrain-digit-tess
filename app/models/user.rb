@@ -63,18 +63,22 @@ class User < ApplicationRecord
   after_update :react_to_role_change
   before_save :set_username_for_invitee
 
-  # Include default devise modules. Others available are: :lockable, :timeoutable
+  # FIXME: why there is redundancy? :omniauthable is included here and everywhere in next
+  # invocations; [:EGI] vs [:egi]?    
+  # Include default devise modules (Ensure omniauthable is included in all feature flags)
+  devise :omniauthable, omniauth_providers: [:EGI]
   if TeSS::Config.feature['login_through_oidc_only']
-    devise :database_authenticatable, :confirmable, :trackable, :validatable, :omniauthable, :authentication_keys => [:login]
+    devise :database_authenticatable, :confirmable, :trackable, :validatable,
+           :omniauthable, omniauth_providers: [:egi], :authentication_keys => [:login]
   elsif TeSS::Config.feature['registration']
     devise :database_authenticatable, :confirmable, :registerable, :invitable, :recoverable, :rememberable, :trackable,
-           :validatable, :omniauthable, :authentication_keys => [:login]
+           :validatable, :omniauthable, omniauth_providers: [:egi], :authentication_keys => [:login]
   elsif TeSS::Config.feature['invitation']
     devise :database_authenticatable, :confirmable, :invitable, :recoverable, :rememberable, :trackable,
-           :validatable, :omniauthable, :authentication_keys => [:login]
+           :validatable, :omniauthable, omniauth_providers: [:egi], :authentication_keys => [:login]
   else
     devise :database_authenticatable, :confirmable, :recoverable, :rememberable, :trackable, :validatable,
-           :omniauthable, :authentication_keys => [:login]
+           :omniauthable, omniauth_providers: [:egi], :authentication_keys => [:login]
   end
 
   auto_strip_attributes :username, squish: false
@@ -199,42 +203,39 @@ class User < ApplicationRecord
   end
 
   def self.from_omniauth(auth)
-    # TODO: Decide what to do about users who have an account but authenticate later on via Elixir AAI.
-    # TODO: The code below will update their account to note the Elixir auth. but leave their password intact;
-    # TODO: is this what we should be doing?
-
-    # find by provider and { uid or email}
-    users = User.where(provider: auth.provider, uid: auth.uid)
-    if users.none? && auth.info.email.present? && auth.provider.present?
-      users = User.where(provider: auth.provider, email: auth.info.email)
-    end
-
-    # get first user
-    user = users.first
+    # 1. Match by provider + uid, or fall back to matching by email
+    user = find_by(provider: auth.provider, uid: auth.uid) ||
+           find_by(email: auth.info.email)
 
     if user
-      # update provider and uid if present
-      if user.provider.nil? and user.uid.nil?
-        user.uid = auth.uid
-        user.provider = auth.provider
-        user.save
-      end
+      # Link provider details if user was found by email
+      user.update(provider: auth.provider, uid: auth.uid) if user.provider.blank?
     else
-      # set name components
-      first_name = auth.info.first_name
-      first_name ||= auth.info.given_name
-      last_name = auth.info.last_name
-      last_name ||= auth.info.family_name
+      # 2. Extract profile details and unique username
+      first_name = auth.info.first_name || auth.info.given_name
+      last_name  = auth.info.last_name  || auth.info.family_name
+      username   = User.username_from_auth_info(auth.info)
 
-      # create user
-      username = User.username_from_auth_info(auth.info)
-      user = User.new(provider: auth.provider,
-                      uid: auth.uid,
-                      email: auth.info.email,
-                      username: username,
-                      profile_attributes: { firstname: first_name, surname: last_name },
+      # 3. Build new user record
+      user = User.new(
+        provider: auth.provider,
+        uid: auth.uid,
+        email: auth.info.email,
+        username: username,
+        password: Devise.friendly_token[0, 20],
+        processing_consent: '1', # Bypasses consents_to_processing validation
+        profile_attributes: { firstname: first_name, surname: last_name }
       )
-      user.skip_confirmation!
+
+      # 4. Email verification logic
+      is_verified = auth.info.email_verified ||
+                    auth.extra&.raw_info&.email_verified || 
+                    auth.extra&.raw_info&.verified
+
+      user.skip_confirmation! if is_verified || !Rails.env.production?
+
+      # 5. Persist the record
+      user.save
     end
 
     user

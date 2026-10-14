@@ -286,6 +286,24 @@ Devise.setup do |config|
   # Add a new OmniAuth provider. Check the wiki for more information on setting
   # up on your models and hooks.
   # config.omniauth :github, 'APP_ID', 'APP_SECRET', scope: 'user,public_repo'
+  config.omniauth :openid_connect,
+    name: :egi,
+    scope: [
+      "openid",
+      "profile",
+      "email",
+      "entitlements"
+    ],
+    response_type: :code,
+    issuer: ENV["EGI_ISSUER"],
+    discovery: true,
+    client_options: {
+      identifier: ENV["EGI_CLIENT_ID"],
+      secret: ENV["EGI_CLIENT_SECRET"],
+      redirect_uri: ENV["EGI_REDIRECT_URL"]
+      # FIXME: commented code - to remove or comment
+      #redirect_uri: "https://registry.hopto.org/users/auth/openid_connect/callback"
+  }
 
   # ==> Warden configuration
   # If you want to use other strategies, that are not supported by Devise, or

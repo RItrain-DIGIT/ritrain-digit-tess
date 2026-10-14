@@ -20,6 +20,8 @@ Rails.application.routes.draw do
   get 'about/us' => 'about#us', as: 'us'
 
   get 'privacy' => 'static#privacy', as: 'privacy'
+  get '/terms', to: 'static#terms', as: :terms
+  get './well-known/security.txt', to: proc { [404, {}, ['']] }
 
   post 'materials/check_exists' => 'materials#check_exists'
   post 'events/check_exists' => 'events#check_exists'
@@ -35,7 +37,7 @@ Rails.application.routes.draw do
       registrations: 'tess_devise/registrations',
       invitations: 'tess_devise/invitations',
       sessions: 'tess_devise/sessions',
-      omniauth_callbacks: 'callbacks'
+      omniauth_callbacks: 'users/omniauth_callbacks'
     }
   end
   #Redirect to users index page after devise user account update
@@ -240,4 +242,12 @@ Rails.application.routes.draw do
   #     # (app/controllers/admin/products_controller.rb)
   #     resources :products
   #   end
+  
+  # Ensure the route is POST and under api/v1/llm/chat 
+  namespace :api do
+    namespace :v1 do
+      post 'llm/chat', to: 'llm#chat' 
+    end
+  end   
 end
+

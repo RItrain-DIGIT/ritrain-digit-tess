@@ -43,3 +43,6 @@ tess.crontab
 
 app-secrets*
 node_modules/
+
+# Ignore IDE workspace settings
+.vscode

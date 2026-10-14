@@ -21,7 +21,7 @@ Rails.application.configure do
   # config.require_master_key = true
 
   # Disable serving static files from `public/`, relying on NGINX/Apache to do so instead.
-  # config.public_file_server.enabled = false
+  config.public_file_server.enabled = true
 
   # Compress CSS using a preprocessor.
   # config.assets.css_compressor = :sass
@@ -98,7 +98,12 @@ Rails.application.configure do
     config.action_mailer.sendmail_settings = {
       location: TeSS::Config.mailer['location'],
       arguments: TeSS::Config.mailer['arguments']
+      # FIXME: overriden, but this should be configured in config tess.yml; to remove?
+      # location: '/usr/sbin/sendmail',
+      # arguments: ['-i', '-t']
     }
+    # FIXME: added, but should not be needed, because it is configured earlier
+    # config.action_mailer.raise_delivery_errors = true
   end
 
   # action mailer other options
