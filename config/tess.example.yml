@@ -90,8 +90,6 @@ default: &default
   site:
     title: 'RItrain-DIGIT'
     title_short: RItrain-DIGIT
-    #favicon: elixir/favicon.png
-    #logo: elixir/elixir-tess.svg
     favicon: egi/favicon.ico
     logo: egi/EGI_small.png
     logo_alt: 'The RItrain-DIGIT Training Registry'
@@ -186,12 +184,10 @@ default: &default
     # User login
     invitation: false
     registration: true
-    #registration: false
     login_through_oidc_only: false # when true, only the first oidc authentication will be available in TeSS, useful when you have your org SSO. Caution! invitation and registration must be false when using this feature.
 
     # User rights
     user_source_creation: true
-    trainers: true
     edit_suggestions: false
     bip_scholar_infographics: # ruby rewrite of https://github.com/athenarc/bip-plugin/tree/main
       enabled: false # when true + when an ORCID is found both in TeSS and in BIP!Scholar, it displays the researcher's infographics on the trainer's page, see https://github.com/ElixirTeSS/TeSS/pull/1373 for details
