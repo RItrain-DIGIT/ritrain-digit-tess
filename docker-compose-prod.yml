@@ -5,8 +5,9 @@ services:
     restart: unless-stopped
     # FIXME: maybe development environment should work without SSL (do not need certs)
     # or event without nginx
+    privileged: true
     ports:
-      - '3443:443'
+      - '443:443'
     volumes:
       - ./nginx:/etc/nginx
       - ./letsencrypt:/etc/letsencrypt
