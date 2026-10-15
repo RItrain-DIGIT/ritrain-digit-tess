@@ -290,8 +290,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_29_120000) do
   create_table "groups_spaces", id: false, force: :cascade do |t|
     t.bigint "group_id", null: false
     t.bigint "space_id", null: false
-    t.index ["group_id"], name: "index_groups_spaces_on_group_id"
-    t.index ["space_id"], name: "index_groups_spaces_on_space_id"
+    t.index ["group_id", "space_id"], name: "index_groups_spaces_on_group_id_and_space_id", unique: true
+    t.index ["space_id", "group_id"], name: "index_groups_spaces_on_space_id_and_group_id"
   end
 
   create_table "learning_path_topic_items", force: :cascade do |t|
@@ -564,7 +564,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_29_120000) do
     t.bigint "image_file_size"
     t.datetime "image_updated_at"
     t.text "image_url"
-    t.boolean "is_private"
+    t.boolean "is_private", default: false, null: false
     t.string "theme"
     t.string "title"
     t.datetime "updated_at", null: false
