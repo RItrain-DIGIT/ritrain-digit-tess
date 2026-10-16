@@ -113,7 +113,7 @@ en:
       learn_more_widgets: Learn more about Widgets
       learn_more_api: Learn more about our API
     registry: >
-      Test The RItrain-DIGIT project brings together Europe’s digital RIs and engages with thematic RIs from all scientific domains to strengthen digital competences and build sustainable collaborations. To achieve this vision, RItrain-DIGIT will implement a comprehensive Training Programme built around structured Learning Pathways, hands-on practice with national compute providers, and close collaboration with pan-European initiatives.
+      The RItrain-DIGIT project brings together Europe’s digital RIs and engages with thematic RIs from all scientific domains to strengthen digital competences and build sustainable collaborations. To achieve this vision, RItrain-DIGIT will implement a comprehensive Training Programme built around structured Learning Pathways, hands-on practice with national compute providers, and close collaboration with pan-European initiatives.
     events: >
       Events in %{site_name} are defined as face-to-face or online training opportunities that have set start and end times.
       These primarily take the form of workshops, courses, webinars, etc.; but %{site_name} also collects information about
