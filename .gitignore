@@ -47,6 +47,6 @@ node_modules/
 # Ignore IDE workspace settings
 .vscode
 
-# Use this directory for storing files for import like database dumps or public assets
-# created in runtime to restore.
-import
+# Use this directory for storing files for export/import like database dumps or public
+# assets created in runtime to restore.
+backup
