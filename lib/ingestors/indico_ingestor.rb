@@ -3,9 +3,10 @@
 require 'icalendar'
 require 'nokogiri'
 require 'tzinfo'
+require 'open-uri'
+require 'uri'
 
 module Ingestors
-  # Reads from direct .ics or Indico (event or category) URLs, .xml sitemaps, and .txt sitemaps.
   class IndicoIngestor < Ingestor
     include Ingestors::Concerns::SitemapHelpers
 
@@ -18,8 +19,8 @@ module Ingestors
     end
 
     def read(source_url)
-      @token = Rails.application.config.secrets.indico_api_token
       @verbose = false
+
       sources = parse_sitemap(source_url)
 
       sources.each do |url|
@@ -29,112 +30,192 @@ module Ingestors
 
     private
 
-    # Modifies the given URL to the ics export.
-    # Loops into each event to process it.
-    # Note: One .ics file can have multiple events.
     def process_url(url)
+      Rails.logger.info("[Indico] Processing source URL: #{url}")
+
       export_url = to_export(url)
-      raise 'Not an indico link' if export_url.nil?
+      raise 'NOT an Indico link' if export_url.nil?
 
-      content = open_url(export_url, raise: true, token: @token).set_encoding('utf-8')
-      events = Icalendar::Event.parse(content)
-      raise 'Not found' if events.nil? || events.empty?
+      content = fetch_calendar_content(export_url)
 
-      events.each do |e|
-        process_calevent(e)
+      Rails.logger.info("[Indico] Response size: #{content.bytesize} bytes")
+      Rails.logger.debug("[Indico] response preview: #{content[0, 500].inspect}")
+
+      # Parse the complete iCalendar document.
+      calendars = Icalendar::Calendar.parse(content)
+      events = Array(calendars).flat_map(&:events)
+
+      Rails.logger.info("[Indico] Parsed *#{events.size}* events from #{export_url}!")
+
+      if events.empty?
+        Rails.logger.info("[Indico] No events found in calendar feed: #{export_url}")
+        return
       end
+
+      # Sorted chronologically: newest event first!
+      sorted_events = events.sort_by do |calevent|
+          calevent.dtstart&.to_time || Time.at(0).utc 
+      end
+
+      sorted_events.reverse!
+      
+      Rails.logger.info("[Indico] Processing events ... [IN PROGRESS]\n")
+
+      sorted_events.each do |calevent|
+        begin
+          process_calevent(calevent)
+        rescue StandardError => e
+          Rails.logger.error(
+            "Indico: failed to process event " \
+            "#{calevent.uid}: #{e.class} - #{e.message}"
+          )
+
+          @messages << (
+            "Failed to process Indico event " \
+            "#{calevent.uid}: #{e.message}"
+          )
+        end
+      end
+    
     rescue StandardError => e
-      @messages << "Process file url[#{export_url}] failed with: #{e.message}"
+      Rails.logger.error("Indico ERROR for #{url}: #{e.class} - #{e.message}")
+
+      messages << ("Process file URL [#{url}] failed with: #{e.message}")
     end
 
-    # 1. If the path already ends with '/events.ics', return as-is.
-    # 2. If the host includes 'indico', ensures the path ends with '/events.ics'.
-    # This method never mutates the original URL string.
-    # Returns the updated URL string or nil if input is blank.
-    def to_export(url)
-      return nil if url.blank?
-
+    def fetch_calendar_content(url)
       uri = URI.parse(url)
-      path = uri.path.to_s
 
-      if path.match?(%r{/(event|events)\.ics\z})
-        uri.to_s
-      elsif indico_page?(uri)
-        ensure_events_ics_path(uri)
+      # Preserve existing query parameters and ensure nc=yes is present.
+      params = URI.decode_www_form(uri.query.to_s)
+      params.reject! { |key, _value| key == 'nc' }
+      params << ['nc', 'yes']
+      uri.query = URI.encode_www_form(params)
+
+      Rails.logger.info("[Indico] Opening calendar URI: #{uri}")
+
+      options = {
+        read_timeout: 30,
+        open_timeout: 10,
+        'User-Agent' => 'egi-automation',
+        'Accept' => 'text/calendar'
+      }
+
+      URI.open(uri.to_s, options) do |response|
+        status = response.status
+        content_type = response.meta['content-type']
+
+        Rails.logger.info(
+          "[Indico] HTTP status: #{status.inspect}"
+        )
+        Rails.logger.info(
+          "[Indico] HTTP Content-Type: #{content_type}"
+        )
+
+        response.read.force_encoding(Encoding::UTF_8)
       end
+    end
+
+    def to_export(url)
+      uri = URI.parse(url)
+
+      # Convert category page/feed URLs to Indico's HTTP API endpoint.
+      match = uri.path.match(%r{/category/(\d+)(?:/events\.ics)?/?$})
+
+      if match
+         category_id = match[1]
+         uri.path = "/export/categ/#{category_id}.ics"
+
+         params = URI.decode_www_form(uri.query.to_s)
+         params.reject! do |key, _value|
+           %w[from to nc].include?(key)
+         end
+        params << ['from', '1900-01-01']
+        params << ['to', '2100-12-31']
+        params << ['nc', 'yes']
+
+        uri.query = URI.encode_www_form(params)
+        return uri.to_s
+      end
+
+      return url if uri.path.to_s.end_with?('.ics')
+      return nil unless indico_page?(uri)
+
+      ensure_events_ics_path(uri)
     end
 
     def indico_page?(uri)
-      # Either checks in host, e.g., 'indico.myinstitution.com'
-      return true if uri.host&.include?('indico')
+      return false if uri.host.nil?
 
-      # Or checks in meta tags
-      html = open_url(uri, raise: true)
-      doc = Nokogiri::HTML(html)
-      content = doc.at('meta[property="og:site_name"]')&.[]('content')
-      content&.match?(/indico/i)
+      uri.host.include?('indico')
     end
 
-    # Ensures the Indico URL ends with '/events.ics'
     def ensure_events_ics_path(uri)
-      paths = uri.path.split('/')
-      uri.path = "#{paths[0..2].join('/')}/"
-      if paths[1] == 'event'
-        uri.path = File.join(uri.path, 'event.ics')
-      elsif paths[1] == 'category'
-        uri.path = File.join(uri.path, 'events.ics')
+      path = uri.path.to_s.chomp('/')
+
+      unless path.end_with?('/events.ics')
+        path = "#{path}/events.ics"
       end
+
+      uri.path = path
       uri.to_s
     end
 
-    # Builds the OpenStruct event and adds it in event.
     def process_calevent(calevent)
-      event_to_add = OpenStruct.new.tap do |event|
-        assign_basic_info(event, calevent)
-        assign_time_info(event, calevent)
-        assign_location_info(event, calevent)
-      end
-      add_event(event_to_add)
-    rescue StandardError => e
-      Rails.logger.error("#{e.class}: #{e.message}")
+      Rails.logger.info(
+        "Event=#{calevent.uid.inspect}, " \
+        "Title=#{calevent.summary.to_s.inspect}, " \
+        "Start=#{calevent.dtstart.inspect}"
+      )
+
+      event = Event.new
+
+      assign_basic_info(event, calevent)
+      assign_time_info(event, calevent)
+      assign_location_info(event, calevent)
+
+      @events << event
     end
 
-    # Assigns to event: url, title, description, keywords.
     def assign_basic_info(event, calevent)
       event.url = calevent.url.to_s
       event.title = calevent.summary.to_s
       event.description = calevent.description.to_s
-      event.keywords = calevent.categories.flatten
-      event.contact = calevent.contact.join(', ')
+      event.keywords = Array(calevent.categories).flatten
+      event.contact = Array(calevent.contact).join(', ')
     end
 
-    # Assigns to event: start, end, timezone.
     def assign_time_info(event, calevent)
-      event.start = calevent.dtstart&.to_time unless calevent.dtstart.nil?
-      event.end = calevent.dtend&.to_time unless calevent.dtend.nil?
+      event.start = calevent.dtstart&.to_time
+      event.end = calevent.dtend&.to_time
       event.timezone = get_tzid(calevent.dtstart)
     end
 
-    # Assigns to event: venue, online, city.
     def assign_location_info(event, calevent)
       location = calevent.location
       return if location.blank?
 
-      description = calevent.description.downcase
+      description = calevent.description.to_s.downcase
+
       online = description.include?('zoom')
-      hybrid = description.include?('hybrid') && !description.include?('not hybrid') && !description.include?('not a hybrid')
+
+      hybrid = description.include?('hybrid') &&
+               !description.include?('not hybrid') &&
+               !description.include?('not a hybrid')
 
       event.venue = location.to_s
       event.online = online || hybrid
-      event.presence = if hybrid
-                         :hybrid
-                       else
-                         online ? :online : :onsite
-                       end
+
+      event.presence =
+        if hybrid
+          :hybrid
+        elsif online
+          :online
+        else
+          :onsite
+        end
     end
 
-    # Extracts the timezone identifier (TZID) from an iCalendar event's dtstart field.
-    # Handles whether tzid shows up as an Array or a single string
     def get_tzid(dtstart)
       return nil unless dtstart.respond_to?(:ical_params)
 

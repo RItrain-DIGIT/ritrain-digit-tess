@@ -16,7 +16,9 @@ module Ingestors
         Ingestors::EventRSSIngestor,
         Ingestors::MaterialRSSIngestor,
         Ingestors::YoutubeIngestor,
-        Ingestors::CdsVideosIngestor
+        Ingestors::CdsVideosIngestor,
+        Ingestors::EgiIngestor,
+        Ingestors::GitlabIngestor
       ] + taxila_ingestors + llm_ingestors + heptraining_ingestors
     end
 
@@ -87,3 +89,4 @@ module Ingestors
     end
   end
 end
+

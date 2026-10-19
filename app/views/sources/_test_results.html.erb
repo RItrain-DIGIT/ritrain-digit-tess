@@ -1,4 +1,4 @@
-<% sample_size ||= 20 %>
+<% sample_size ||= 1000 %>
 
 <h4>Last Test Results</h4>
 <p>
@@ -20,7 +20,9 @@
 <% ['events', 'materials'].each do |type| %>
   <% resources = test_results[type.to_sym] || [] %>
   <% results_count += resources.count %>
-  <% sample = resources.sample(sample_size) %>
+  <%# FIXME: commented-out old code - maybe to remove %>
+  <!--% sample = resources.sample(sample_size) %-->
+  <% sample = resources %>
   <% next if resources.none? %>
 
   <%= collapsible_panel(pluralize(resources.count, type.singularize), type) do %>
@@ -45,3 +47,4 @@
 <% if results_count == 0 %>
   <span class="muted">No resources were found</span>
 <% end %>
+
