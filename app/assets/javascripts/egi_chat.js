@@ -2,6 +2,7 @@
   function initializeEgiChat() {
     const toggleBtn = document.getElementById("egi-chat-toggle");
     const closeBtn = document.getElementById("egi-chat-close");
+    const clearBtn = document.getElementById("egi-chat-clear");
     const chatWindow = document.getElementById("egi-chat-window");
     const sendBtn = document.getElementById("egi-chat-send");
     const inputField = document.getElementById("egi-chat-input");
@@ -25,15 +26,14 @@
     }
 
     toggleBtn.dataset.egiChatInitialized = "true";
-
-    console.log("EGI Chat: initialized");
+    console.log("EGI Chat: Initialized!");
 
     let conversationHistory = [];
+    let isSending = false;
 
-    // Open / close chat window
+    // Open/Close chat window.
     toggleBtn.addEventListener("click", function (event) {
       event.preventDefault();
-
       chatWindow.classList.toggle("hidden");
 
       if (!chatWindow.classList.contains("hidden")) {
@@ -41,20 +41,38 @@
       }
     });
 
-    // Close button
+    // Close button.
     closeBtn.addEventListener("click", function (event) {
       event.preventDefault();
-
       chatWindow.classList.add("hidden");
     });
+   
+    // Clear transcript and conversation history.
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function (event) {
+        console.log("EGI: Clean button fired!");
+        event.preventDefault();
 
-    // Send message
+        // Avoid clearing the transcript while a request is in progress.
+        if (isSending) return;
+
+        messagesContainer.replaceChildren();
+        conversationHistory = [];
+        // Display the default greeting
+        appendMessage("assistant", "Hello! How can I assist you today?");
+        inputField.value = "";
+        inputField.placeHolder = "Type a question...";
+        inputField.focus();
+
+        console.log("EGI Chat: Conversation cleared!");
+      });
+    }
+
+    // Send message to the API.
     async function sendMessage() {
       const text = inputField.value.trim();
 
-      if (!text) {
-        return;
-      }
+      if (!text || isSending) return;
 
       appendMessage("user", text);
 
@@ -64,7 +82,12 @@
       });
 
       inputField.value = "";
+      isSending = true;
       sendBtn.disabled = true;
+      inputField.disabled = true;
+
+      // Show a loading indicator.
+      const loadingMessage = appendMessage("assistant", "Thinking...");
 
       const csrfToken = document
         .querySelector('meta[name="csrf-token"]')
@@ -75,7 +98,8 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-CSRF-Token": csrfToken
+            "Accept": "application/json",
+            ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {})
           },
           body: JSON.stringify({
             messages: conversationHistory
@@ -83,37 +107,85 @@
         });
 
         if (!response.ok) {
+          const errorText = await response.text();
+
           throw new Error(
-            `Request failed with status ${response.status}`
+            `Request failed with status ${response.status}` +
+            (errorText ? `: ${errorText}` : "")
           );
         }
 
         const data = await response.json();
 
-        const reply =
-          data?.choices?.[0]?.message?.content ||
-          "Sorry, I couldn't generate a response.";
+        // Extract TeSS data.
+        const tess = data?.tess || {};
 
-        appendMessage("assistant", reply);
+        // Extract the LLM response.
+        const rawAnswer =
+          typeof data?.llm?.answer === "string"
+          ? data.llm.answer
+          : data?.llm?.answer?.choice?.[0]?.message?.content ||
+            data?.llm?.answer?.choice?.[0]?.text ||
+            data?.llm?.choice?.[0]?.message?.content ||
+            "No EGI LLM response available!";
 
+        // Remove the loading indicator.
+        loadingMessage.remove();
+
+        // Separate the LLM answer from the embedded TeSS headings
+        let llm = String(rawAnswer);
+        const llmMarker = "[LLM]";
+        const llmIndex = llm.lastIndexOf(llmMarker);
+
+        if (llmIndex !== -1) {
+          llm = llm.slice(llmIndex + llmMarker.length).trim();
+        }
+
+        // Format and display structured TeSS results
+        const tessText = formatTess(tess);
+        appendSection("tess", "[TeSS]", tessText);
+
+        // Display the LLM response separately
+        appendSection("llm", "[LLM]", String(llm));
+
+        // Save the combined assistant response for future conversation turns
         conversationHistory.push({
           role: "assistant",
-          content: reply
+          content: llm
+          //content: `[TeSS]\n${tessText}\n\n[LLM]\n${String(llm)}`
         });
+
+        // Keep the most recent 20 messages.
+        if (conversationHistory.length > 20) {
+          conversationHistory = conversationHistory.slice(-20);
+        }
       } catch (error) {
         console.error("EGI Chat Error:", error);
 
+        loadingMessage.remove();
+
         appendMessage(
           "assistant",
-          "Sorry, an error occurred communicating with EGI AI."
+          `Response failed: ${error.message}`
         );
+
+        // Remove the failed user message from history so it can
+        // be retried without retaining an unanswered request.
+        const lastMessage =
+          conversationHistory[conversationHistory.length - 1];
+
+        if (lastMessage && lastMessage.role === "user") {
+          conversationHistory.pop();
+        }
       } finally {
+        isSending = false;
         sendBtn.disabled = false;
+        inputField.disabled = false;
         inputField.focus();
       }
     }
 
-    // Add message to transcript
+    // Add a plain-text message to the transcript.
     function appendMessage(role, text) {
       const msgDiv = document.createElement("div");
 
@@ -122,26 +194,118 @@
 
       messagesContainer.appendChild(msgDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+      return msgDiv;
     }
 
-    // Send button
+    // FIXME: not used - maybe it is missing or should be deleted
+    // Escape HTML to prevent resource data from injecting markup.
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, function (char) {
+        return {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        }[char];
+      });
+    }
+    
+    // Format TeSS API results.
+    function formatTess(tess = {}) {
+      tess = tess || {};
+
+      const sections = [
+        ["Events", tess.events],
+        ["Materials", tess.materials],
+        ["Trainers", tess.trainers],
+        ["Content providers", tess.content_providers]
+      ];
+
+      return sections
+        .map(([label, items]) => {
+          if (!Array.isArray(items) || items.length === 0) {
+            return `- ${label}: None found`;
+          }
+
+          const formattedItems = items
+            .map((item) => {
+              const title = item?.title || item?.name || "Untitled";
+              const description = item?.description || "";
+              const url = item?.url || "";
+
+              return (` - <strong>${title}:</strong>` +
+                (description ? ` ${description}` : "") +
+                (url ? `\n    URL: <a href="${url}" target="_blank" rel="noopener noreferres">${url}</a>` : "")
+              );
+            })
+            .join("\n");
+
+          return `- ${label}:\n${formattedItems}`;
+        })
+        .join("\n\n");
+    }
+    
+    // Add a formatted response section to the transcript.
+    function appendSection(role, heading, text) {
+      const section = document.createElement("div");
+      section.classList.add("chat-section", `chat-section-${role}`);
+
+      const title = document.createElement("div");
+      title.classList.add("chat-section-title");
+      title.textContent = heading;
+
+      const content = document.createElement("div");
+      content.classList.add("chat-section-content");
+
+      if (
+        role === "llm" &&
+        typeof text === "string" &&
+        window.marked &&
+        window.DOMPurify
+      ) {
+        // Parse Markdown and sanitize generated HTML.
+        const html = window.marked.parse(text);
+        content.innerHTML = window.DOMPurify.sanitize(html);
+        content.classList.add("markdown-body");
+      } else if (role === "tess") {
+        // TeSS results remain plain text.
+        content.innerHTML = DOMPurify.sanitize(text, {
+          ALLOWED_TAGS: ["a", "strong"],
+          ALLOWED_ATTR: ["href", "target", "rel"],
+        });
+      } else {
+        content.textContent = text;
+      }
+
+      section.appendChild(title);
+      section.appendChild(content);
+      messagesContainer.appendChild(section);
+
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+      return section;
+    }
+
+    // Send button.
     sendBtn.addEventListener("click", function (event) {
       event.preventDefault();
       sendMessage();
     });
 
-    // Enter key
+    // Enter key.
     inputField.addEventListener("keydown", function (event) {
-      if (event.key === "Enter") {
+      if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         sendMessage();
       }
     });
   }
 
-  // Normal page load
+  // Normal page load.
   document.addEventListener("DOMContentLoaded", initializeEgiChat);
 
-  // Turbolinks page navigation
+  // Turbolinks page navigation.
   document.addEventListener("turbolinks:load", initializeEgiChat);
 })();

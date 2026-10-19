@@ -8,6 +8,10 @@ services:
     privileged: true
     ports:
       - '443:443'
+    networks:
+      default:
+        aliases:
+          - ${TESS_BASE_HOST}
     volumes:
       - ./nginx:/etc/nginx
       - ./letsencrypt:/etc/letsencrypt
