@@ -6,6 +6,12 @@
 
 The TeSS code is open source and available under a [BSD 3-Clause license](LICENSE). You are free to [use it outside of ELIXIR](docs/customization.md), with minimal restrictions on its use and distribution. If you do create your own version/fork of TeSS, we welcome and encourage [contributing](CONTRIBUTING.md) your changes back to the main TeSS codebase.
 
+## RItrain-DIGIT TeSS fork
+
+This repository is a fork of TeSS for the [RItrain-DIGIT](https://www.egi.eu/project/ritrain-digit) project. It adds RItrain-DIGIT-specific features, including custom ingestors, Nginx configuration, and EGI LLM Chat, while aiming to remain compatible with future updates from upstream TeSS.
+
+For setup instructions, see the [RItrain-DIGIT TeSS guide](docs/ritrain-digit.md).
+
 ## Features
 
 - Faceted browsing/filtering

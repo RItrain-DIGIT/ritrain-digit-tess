@@ -49,4 +49,5 @@ node_modules/
 
 # Use this directory for storing files for export/import like database dumps or public
 # assets created in runtime to restore.
-backup
+/backup/*
+!/backup/.gitkeep

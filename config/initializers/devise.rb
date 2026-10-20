@@ -301,8 +301,6 @@ Devise.setup do |config|
       identifier: ENV["EGI_CLIENT_ID"],
       secret: ENV["EGI_CLIENT_SECRET"],
       redirect_uri: ENV["EGI_REDIRECT_URL"]
-      # FIXME: commented code - to remove or comment
-      #redirect_uri: "https://registry.hopto.org/users/auth/openid_connect/callback"
   }
 
   # ==> Warden configuration
