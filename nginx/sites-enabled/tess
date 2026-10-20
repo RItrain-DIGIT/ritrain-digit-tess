@@ -1,6 +1,6 @@
 server {
 
-    listen 443 ssl; 	# managed by Certbot
+    listen 443 ssl;
     server_name registry.hopto.org;
 
     # Set root to the main public folder
@@ -32,7 +32,7 @@ server {
 	    proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
-        # CRITICAL: This tells Rails the browser connected over HTTPS!
+        # Tells Rails the browser is connected over HTTPS
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Ssl on; # Optional
         proxy_set_header X-Forwarded-Host $http_host;
