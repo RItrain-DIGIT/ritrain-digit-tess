@@ -2,8 +2,8 @@
 # Backs up and restores public/system (files uploaded to the application).
 #
 # Usage:
-#   scripts/uploads.sh backup  [archive.tar.gz] [production|development]
-#   scripts/uploads.sh restore  archive.tar.gz  [production|development]
+#   scripts/backup_uploads.sh backup  [archive.tar.gz] [production|development]
+#   scripts/backup_uploads.sh restore archive.tar.gz  [production|development]
 #
 # development: public/system is a directory of the project (bind mount).
 # production:  public/system is the "uploads" docker volume.
@@ -49,9 +49,7 @@ case "$RAILS_ENV" in
   *) echo "Unsupported RAILS_ENV: $RAILS_ENV (use production or development)" >&2; exit 1 ;;
 esac
 
-# Runs a command in a one-off app container, where public/system is the "uploads" volume
-# (production) or the project directory (development, bind mount). Needed because files
-# there are owned by the container user, not by the host user.
+# Runs in a one-off app container so file ownership matches the application container.
 in_system() {
   docker compose -f "$COMPOSE_FILE" run --rm --no-deps -T --entrypoint "$1" app "${@:2}"
 }

@@ -82,24 +82,20 @@ The Git-ignored `backup` directory is intended for database dumps and uploaded-f
 
 ### Back up the database
 
-Run `pg_dump` inside the database container and redirect its output to a file on the host. Use the Compose file for the environment you are backing up:
+The `backup_database.sh` script handles both database backups and restores. It detects the environment from a running app container; alternatively, pass `production` or `development` explicitly. If no running app container is found, it defaults to `production`, so specify the environment when operating on a stopped stack. The database backup is created in custom PostgreSQL dump format (`.dump`).
 
 ```sh
-BACKUP_DIR="backup/$(date +%F)"
-mkdir -p "$BACKUP_DIR"
-docker compose -f docker-compose-prod.yml exec -T db \
-  sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
-  > "$BACKUP_DIR/tess_$(date +%Y%m%d_%H%M%S).dump"
+./scripts/backup_database.sh backup backup/2026-10-20/tess_20261020_081849.dump
 ```
 
-For development, replace `docker-compose-prod.yml` with `docker-compose.yml`. The database credentials and database name are read from the container's environment, which is populated from `.env`.
+If the dump path is omitted, the script creates a timestamped file under `backup/`. For development, pass `development` instead of `production`.
 
 ### Back up uploaded files
 
-The `uploads.sh` script backs up the application's `public/system` directory. It detects the environment from a running app container. Alternatively, you can pass `production` or `development` explicitly.
+The `backup_uploads.sh` script backs up the application's `public/system` directory. It uses the same environment detection and optional environment argument as the database script, including the `production` default when no app container is running.
 
 ```sh
-./scripts/uploads.sh backup backup/2026-10-20/uploads.tar.gz
+./scripts/backup_uploads.sh backup backup/2026-10-20/uploads.tar.gz
 ```
 
 If the archive path is omitted, the script creates a timestamped archive under `backup/`.
@@ -108,10 +104,10 @@ If the archive path is omitted, the script creates a timestamped archive under `
 
 > **Warning:** Restoring a database replaces the entire configured database. Restoring uploaded files deletes the current contents of `public/system` before extracting the archive. Verify the target environment and take a fresh backup before proceeding.
 
-Restore a database dump with `restore_database.sh`:
+Restore a database dump with `backup_database.sh`:
 
 ```sh
-./scripts/restore_database.sh backup/2026-10-20/tess_20261020_081849.dump
+./scripts/backup_database.sh restore backup/2026-10-20/tess_20261020_081849.dump production
 ```
 
 Beside restoring database, the script stops and starts services automatically, does reindexing, etc. The target Compose services must be available, and `.env` must be configured in the repository root.
@@ -119,7 +115,7 @@ Beside restoring database, the script stops and starts services automatically, d
 Restore uploaded files from an archive with:
 
 ```sh
-./scripts/uploads.sh restore backup/2026-10-20/uploads.tar.gz production
+./scripts/backup_uploads.sh restore backup/2026-10-20/uploads.tar.gz
 ```
 
 Use the same environment for both the database and uploads operations to restore a consistent backup set.
