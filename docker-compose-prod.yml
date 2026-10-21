@@ -15,6 +15,7 @@ services:
     volumes:
       - ./nginx:/etc/nginx
       - ./letsencrypt:/etc/letsencrypt
+      - uploads:/TeSS/public/system:ro
     depends_on:
       - app
   app:

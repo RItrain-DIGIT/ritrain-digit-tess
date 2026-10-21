@@ -6,13 +6,13 @@ server {
     # Set root to the main public folder
     root /TeSS/public;
 
-    # FIXME: the original public directory - maybe we should use it this way
-    #location ^~ /system/ {
-    #   root /TeSS/public;
-    #   expires max;
-    #   add_header Cache-Control public;
-    #   try_files $uri =404;
-    #}
+    # Uploaded files (volume `uploads` mounted read-only) served directly by nginx
+    location ^~ /system/ {
+        root /TeSS/public;
+        expires max;
+        add_header Cache-Control public;
+        try_files $uri =404;
+    }
 
     ssl_certificate 	/etc/letsencrypt/live/registry.hopto.org/fullchain.pem; # managed by Certbot
     ssl_certificate_key /etc/letsencrypt/live/registry.hopto.org/privkey.pem; # managed by Certbot
