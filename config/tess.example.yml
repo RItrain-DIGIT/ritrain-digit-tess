@@ -1,7 +1,7 @@
 default: &default
   base_url: http://localhost:3000
-  contact_email: support@egi.eu
-  sender_email: no-reply@localhost
+  contact_email: info@ritrain-digit.eu
+  sender_email: no-reply@ritrain-digit.eu
   twitter_handle: # @handle
   solr_enabled: true
   solr_facets:
@@ -90,8 +90,11 @@ default: &default
   site:
     title: 'RItrain-DIGIT'
     title_short: RItrain-DIGIT
+    #favicon: elixir/favicon.png
+    #logo: elixir/elixir-tess.svg
     favicon: egi/favicon.ico
-    logo: egi/EGI_small.png
+    #logo: egi/EGI_small.png
+    logo: egi/340062480.png
     logo_alt: 'The RItrain-DIGIT Training Registry'
     logo_open_graph: ''
     logo_email: ''

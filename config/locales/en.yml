@@ -222,7 +222,7 @@ en:
  
       <div>
       For enquiries, information, or assistance; contact our support desk at<br><br>
-      <a class="btn btn-primary" href="mailto:support@egi.eu"><i class="fa fa-envelope"> support@egi.eu</i></a>
+      <a class="btn btn-primary" href="mailto:info@ritrain-digit.eu"><i class="fa fa-envelope"> info@ritrain-digit.eu</i></a>
       </div>
     funding: >
       The Training Registry has been funded by:
@@ -1254,4 +1254,3 @@ Mli>You shall promptly report known or suspected security breaches, credential c
             week: Within the last week
             month: Within the last month
             year: Within the last year
-

@@ -3,8 +3,14 @@
 @import "../application";
 
 // EGI Color Palette
-$egi-blue: #004b8d;
-$egi-light-blue: #eef5fb;
+//$egi-blue: #004b8d;
+//$egi-light-blue: #eef5fb;
+//$white: #ffffff;
+//$gray-dark: #333333;
+
+// RItrain-DIGIT Palette
+$egi-blue: #009FE3;
+$egi-light-blue: #312783;
 $white: #ffffff;
 $gray-dark: #333333;
 
@@ -14,7 +20,7 @@ $navbar-link-color: $white;
 $brand-primary: $egi-blue;
 $brand-secondary: $egi-light-blue;
 
-// Apply EGI Styles
+// Applying styles
 .navbar-default {
   background-color: $navbar-bg;
   border-color: darken($egi-blue, 10%);
@@ -36,4 +42,3 @@ h1, h2, h3 {
   color: $gray-dark;
   border-bottom: 2px solid $egi-blue;
 }
-

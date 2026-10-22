@@ -228,4 +228,3 @@ class EgiScraper
     value.empty? ? nil : value
   end
 end
-

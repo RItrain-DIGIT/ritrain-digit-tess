@@ -29,16 +29,17 @@ module Ingestors
 
       materials = scraper.materials
       Rails.logger.info("Training *Materials* returned: #{materials.length}")
-      
+
       materials.each do |material|
         Rails.logger.info("#{material[:title].inspect}")
         add_material(OpenStruct.new(material))
       end
     rescue StandardError => e
-      Rails.logger.error("[EGI Ingestor] #{e.class}: #{e.message}")
+      Rails.logger.error("[EGI ingestor] #{e.class}: #{e.message}")
       Rails.logger.error(e.backtrace.join("\n")) if e.backtrace&.any?
 
       @messages << "EGI ingestion failed: #{e.message}"
     end
   end
 end
+

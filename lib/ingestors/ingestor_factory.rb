@@ -18,7 +18,8 @@ module Ingestors
         Ingestors::YoutubeIngestor,
         Ingestors::CdsVideosIngestor,
         Ingestors::EgiIngestor,
-        Ingestors::GitlabIngestor
+        Ingestors::EvitaIngestor,
+        Ingestors::HpcPortalIngestor
       ] + taxila_ingestors + llm_ingestors + heptraining_ingestors
     end
 
