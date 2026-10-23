@@ -174,7 +174,7 @@ module Ingestors
       assign_time_info(event, calevent)
       assign_location_info(event, calevent)
 
-      @events << event
+      add_event(event.attributes)
     end
 
     def assign_basic_info(event, calevent)

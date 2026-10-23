@@ -151,7 +151,7 @@ module Ingestors
               next if event_keys.include?(key)
 
               event_keys.add(key)
-              @events << event
+              add_event(event)
               events_discovered += 1
             end
           end
@@ -179,7 +179,7 @@ module Ingestors
                    !event_keys.include?(key)
 
                   event_keys.add(key)
-                  @events << event
+                  add_event(event)
                   events_discovered += 1
                   courses_converted += 1
 
