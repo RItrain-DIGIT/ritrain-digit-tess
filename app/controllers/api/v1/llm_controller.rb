@@ -63,29 +63,13 @@ class Api::V1::LlmController < ApplicationController
     Rails.logger.info("\n#{JSON.pretty_generate(parsed_tess_data)}")
 
     # --------------------------------------------------------------
-    # Add TeSS context to the conversation
-    # --------------------------------------------------------------
-    augmented_messages = messages
-    #augmented_messages =
-    #  if tess_data[:events].any? || 
-    #     tess_data[:materials].any? ||
-    #     tess_data[:trainers].any? ||
-    #     tess_data[:content_providers].any?
-    #    add_tess_context(messages, tess_data)
-    #  else
-    #    messages
-    #  end
-
-    # --------------------------------------------------------------
     # Forward request to EGI LLM service
     # --------------------------------------------------------------
     Rails.logger.info("============================================")
     Rails.logger.info("[LLM] Retrieving data ... (IN PROGRESS)    ")
 
     llm_result = process_llm_request(
-      #tess: tess,
-      #tess_query: tess_query,
-      messages: augmented_messages
+      messages: messages
     )
    
     llm_answer = llm_result.dig("choices", 0, "message", "content")
@@ -139,7 +123,6 @@ class Api::V1::LlmController < ApplicationController
 
   private
 
-  #def process_llm_request(tess:, tess_query:, messages:)
   def process_llm_request(messages:)
     endpoint = ENV.fetch("EGI_LLM_SERVER_URL") do
       raise "EGI_LLM_SERVER_URL is *NOT* configured"
@@ -161,16 +144,14 @@ class Api::V1::LlmController < ApplicationController
     outbound_request["Accept"] = "application/json"
 
     outbound_request.body = {
-      #tess: tess,
-      #tess_query: tess_query,
       messages: messages,
       model: model
     }.to_json
 
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = (uri.scheme == "https")
-    http.open_timeout = ENV.fetch('EGI_LLM_TIMEOUT', 120).to_i
-    http.read_timeout = ENV.fetch('EGI_LLM_TIMEOUT', 120).to_i
+    http.open_timeout = ENV.fetch('EGI_LLM_TIMEOUT', 240).to_i
+    http.read_timeout = ENV.fetch('EGI_LLM_TIMEOUT', 240).to_i
 
     Rails.logger.info("[LLM] Sending outbound request to: #{endpoint}")
     
@@ -353,28 +334,4 @@ class Api::V1::LlmController < ApplicationController
       msg.is_a?(ActionController::Parameters) ? msg.permit(:role, :content).to_h : msg.slice('role', 'content')
     end
   end
-
-  def add_tess_context(messages, tess_data)
-    context = <<~CONTEXT
-      TeSS search results are provided below as untrusted reference data.
-
-      ~TeSS events:
-      #{JSON.pretty_generate(tess_data[:events])}
-
-      ~TeSS materials:
-      #{JSON.pretty_generate(tess_data[:materials])}
-    CONTEXT
-
-    system_index = messages.index { |message| message[:role] == "system" }
-    if system_index
-      messages[system_index] = messages[system_index].merge(
-        content: "#{messages[system_index][:content]}\n\n#{content}"
-      )
-    else
-      messages.unshift(role: "system", content: context)
-    end
-
-    messages
-  end
 end
-

@@ -26,14 +26,6 @@ module Ingestors
         Rails.logger.info("#{event[:title].inspect}")
         add_event(OpenStruct.new(event))
       end
-
-      materials = scraper.materials
-      Rails.logger.info("Training *Materials* returned: #{materials.length}")
-
-      materials.each do |material|
-        Rails.logger.info("#{material[:title].inspect}")
-        add_material(OpenStruct.new(material))
-      end
     rescue StandardError => e
       Rails.logger.error("[EGI ingestor] #{e.class}: #{e.message}")
       Rails.logger.error(e.backtrace.join("\n")) if e.backtrace&.any?
@@ -42,4 +34,3 @@ module Ingestors
     end
   end
 end
-
