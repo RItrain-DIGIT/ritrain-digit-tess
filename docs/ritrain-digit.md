@@ -34,6 +34,7 @@ The default hostname in this repository is `registry.hopto.org`. Replace it with
 cp env.sample .env
 cp config/tess.example.yml config/tess.yml
 cp config/secrets.example.yml config/secrets.yml
+cp config/ingestion.example.yml config/ingestion.example.yml
 ```
 
 Edit `.env` and replace placeholder credentials and API keys with deployment-specific values. The RItrain-DIGIT version of `env.sample` includes additional settings for EGI authentication, the EGI LLM integration, and custom ingestors. Configure the values for the integrations you intend to use. `tess.yml` controls TeSS features and branding; `secrets.yml` holds application secrets and external service credentials.
