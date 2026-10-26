@@ -1,5 +1,5 @@
 default: &default
-  base_url: http://localhost:3000
+  base_url: https://registry.hopto.org
   contact_email: info@ritrain-digit.eu
   sender_email: no-reply@ritrain-digit.eu
   twitter_handle: # @handle
@@ -99,7 +99,7 @@ default: &default
     logo_open_graph: ''
     logo_email: ''
     default_theme: egi # Possible options: default, classic, blue, green
-    repository: 'https://github.com/ElixirTeSS/TeSS'
+    repository: 'https://github.com/RItrain-DIGIT/ritrain-digit-tess'
     supported_by: 'elixir_supported_by'
     widget_example:
     home_page: # Configuration for the sections displayed on the front page
