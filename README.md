@@ -1,6 +1,6 @@
 # TeSS
 
-[![Actions Status](https://github.com/ElixirTeSS/TeSS/workflows/CI/badge.svg)](https://github.com/ElixirTeSS/TeSS/actions)
+[![Actions Status](https://github.com/RItrain-DIGIT/ritrain-digit-tess/workflows/CI/badge.svg)](https://github.com/RItrain-DIGIT/ritrain-digit-tess/actions)
 
 [ELIXIR's](https://www.elixir-europe.org/) **T**raining **e**-**S**upport **S**ervice - A Ruby on Rails application providing a portal for registering and discovering training events and materials.
 
@@ -20,7 +20,7 @@ For setup instructions, see the [RItrain-DIGIT TeSS guide](docs/ritrain-digit.md
 - Automated, periodic import (scraping) of resources
 - Email subscriptions
 - JSON API
-- Embeddable [widgets](https://github.com/ElixirTeSS/TeSS_widgets)
+- Embeddable [widgets](https://github.com/RItrain-DIGIT/ritrain-digit-tess_widgets)
 - iCal export
 - Semantic web-friendly - [Bioschemas](https://bioschemas.org/) and [EDAM Ontology](https://edamontology.org/) integration
 - Administration and curation features for managing users and content
