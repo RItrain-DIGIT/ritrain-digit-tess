@@ -90,11 +90,8 @@ default: &default
   site:
     title: 'RItrain-DIGIT'
     title_short: RItrain-DIGIT
-    #favicon: elixir/favicon.png
-    #logo: elixir/elixir-tess.svg
     favicon: egi/favicon.ico
-    #logo: egi/EGI_small.png
-    logo: egi/340062480.png
+    logo: egi/ritrain-digit-logo-short.png
     logo_alt: 'The RItrain-DIGIT Training Registry'
     logo_open_graph: ''
     logo_email: ''
