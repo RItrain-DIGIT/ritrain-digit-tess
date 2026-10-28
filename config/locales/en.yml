@@ -232,13 +232,13 @@ en:
       </ul>
       <p></p>
       <p>
-        <a target="_blank" href="https://cordis.europa.eu/project/id/857641">
+        <a target="_blank" class="img-only-link" href="https://cordis.europa.eu/project/id/857641">
         <img class="funding-logo" src="/assets/egi/eu_flag-ec2b7784ff81622a0cdfbc2747a5272c62c169650c0dc2a607a6c0e24f0a5b36.svg"/>
         </a>    
-        <a target="_blank" href="https://egi.eu/">
+        <a target="_blank" class="img-only-link" href="https://egi.eu/">
         <img class="funding-logo" src="/assets/egi/EGI_logo_normal_300px_height-511abc852df9e2c4fd23c4bc80a81f2077020745d22ee2f017ab05a36f6e5d11.png"/>
         </a>                 
-        <a target="_blank" href="https://prace-ri.eu/">
+        <a target="_blank" class="img-only-link" href="https://prace-ri.eu/">
         <img class="funding-logo" src="/assets/egi/PRACE_logo-012ac4d1927f6567730c2228e2555719f8065fc9bb31633085e542b1a13aa189.png"/>
         <a>                 
         </a>                 
