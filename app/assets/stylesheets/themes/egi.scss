@@ -30,6 +30,16 @@ $brand-secondary: $egi-light-blue;
   }
 }
 
+.unified-header .navbar-brand img {
+  $navbar-img-margin: 4px;
+  // override !important style from modern_base
+  max-height: calc(100% - #{$navbar-img-margin} * 2) !important;
+  background-color: #FFFFFF;
+  border-radius: 100%;
+  margin-top: $navbar-img-margin;
+  padding: 8px;
+}
+
 // Ensure buttons match brand
 .btn-primary {
   background-color: $brand-primary;
