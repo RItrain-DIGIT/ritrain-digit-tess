@@ -477,7 +477,7 @@ en:
         From the topic page, you can view all training materials, in order.</li></ol>
   home:
     welcome: |
-      Training Registry for <a href="https://cordis.europa.eu/project/id/101292852">
+      Training Registry for <a href="https://cordis.europa.eu/project/id/101292852" target="_blank">
       <img class="funding-logo" 
            style="width:400px; height:auto;" 
            src="/assets/egi/RItrain-DIGIT_logo-56e1f4c653cafe519ef02c18bb46b5e6fb343a111722e61e6c845a3e92d93b8d.png"/></a>
