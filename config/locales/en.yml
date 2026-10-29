@@ -37,10 +37,44 @@ en:
     spaces:
       short: Spaces
       long: Spaces
+    groups:
+      short: Groups
+      long: Groups
   pundit:
     default: 'You are not authorised to perform this action.'
     material_policy:
     event_policy:
+  private_space:
+    no_authorized: You are not authorized to access this page.
+    needs_sign_in: You need to sign in to the main application to access this page.
+    needs_groups_in_form: If the space is private, you must add required groups.
+  group:
+    show:
+      group: Group
+      members: Members
+      owner: Owner
+      no_members: No members yet.
+      back_to_groups: Back to groups
+      add_members: Add members
+      stats:
+        title: Quick stats
+        total: Total members
+        owners: Owners
+      table:
+        name: Name
+        email: Email
+        role: Role
+        owner: Owner
+        member: Member
+      spaces:
+        title: Spaces which require this group to have access to
+        space: Space
+        other_groups: Other groups which have access
+        no_access: This group does not give access to any private space
+    form:
+      members: Members
+      placeholder: Group title
+      member_explain: Search and add members below - check <strong>Owner</strong> to grant ownership.
   attributes:
     url: 'URL'
     doi: 'DOI'
@@ -77,8 +111,10 @@ en:
         difficulty_level: Competency level
       learning_path:
         difficulty_level: Competency level
+        collaborators: Maintainers
       learning_path_topic:
         difficulty_level: Competency level
+        collaborators: Maintainers
       workflow:
         difficulty_level: Competency level
   about:
@@ -189,17 +225,11 @@ en:
     api_example_5: "/workflows.json_api"
   us:
     keys:
+      contact: Contact
       team: The Management Team
-      contact: 
       funding: Funding
       acknowledgements: Acknowledgments
       cite: Cite us
-    #tess_club: >
-    #  <p>Fortnightly meetings, hackathons, shared activities, open priority setting, open contribution to unite the
-    #  community.</p>
-    #  <p>For all the details please visit the 
-    #  <a href="https://elixirtess.github.io/about/">TeSS Club Website<i class="icon icon-md arrow-top-right-icon"></i></a>
-    #  </p>
     team: >
       <div class="h4">Project Director</div>
       <ul><li>Giuseppe La Rocca, EGI F.</li></ul>
@@ -326,7 +356,7 @@ en:
       <p>%{site_name} currently supports the APIs for:
       <ul>
       <li><a target='_blank', href='https://eventbrite.com'>Eventbrite</a> - for events</li>
-      <li><a target='_blank', href='https://zenodo.com'>Zenodo</a> - for materials</li>
+      <li><a target='_blank', href='https://zenodo.org'>Zenodo</a> - for materials</li>
       <li>Other TeSS instances - for events</li>
       </ul>
       </p>
@@ -657,7 +687,7 @@ en:
       capacity: >
         Provide the total number (cap) of individuals that can attend the training event.
         Leave blank if there is no limit.
-      supportcontact: >
+      contact: >
         The individual responsible for communication regarding the training material, typically including 
         name, affiliation, email address, and an ORCID identifier if possible.
       cost_basis: 'Select the basis by which costs, if any, are applied.'
@@ -875,6 +905,11 @@ en:
       filters: Filters
       allow_list: Allow List
       block_list: Block List
+    testing:
+      error:
+        title: "Error rendering test ingestion!"
+        input_data: "Input data:"
+        message: "Error message:"
     prompts:
       default_language: 'Select a default language...'
   scraper:
@@ -1025,6 +1060,7 @@ en:
       view_stars: 'View stars'
       administration: 'Administration'
       view_users: 'View users'
+      view_groups: 'View groups'
       view_sources: 'View sources'
       view_ingestion_sources: 'View ingestion sources'
       assign_scientific_topics: "Assign scientific topics to %{title} resources"
@@ -1121,6 +1157,9 @@ en:
         can be used for exchanging content between different TeSS instances. 
         See the <a href="https://elixirtess.github.io/docs/" target="_blank" rel="noopener">TeSS documentation</a> 
         for more details.
+      set_descriptions:
+        materials: 'Set of all training materials'
+        events: 'Set of all training events'
     unsubscribe:
       success: 'You have successfully unsubscribed.'
     frequency_options:
@@ -1259,3 +1298,15 @@ en:
             week: Within the last week
             month: Within the last month
             year: Within the last year
+  exchange:
+    title: Original entry
+    info: "This %{resource_type} originated from another TeSS registry. For complete, up-to-date information, please visit the original entry:"
+    link: Go to original entry
+  other_space:
+    link: View in space
+  search:
+    errors:
+      filter_limit_reached: Filter limit reached, please log in to apply additional filters.
+  collaborators:
+    current: "Current %{attribute}:"
+    add: Add a new %{attribute}
