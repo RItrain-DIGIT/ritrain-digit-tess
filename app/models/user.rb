@@ -63,22 +63,21 @@ class User < ApplicationRecord
   after_update :react_to_role_change
   before_save :set_username_for_invitee
 
-  # FIXME: why there is redundancy? :omniauthable is included here and everywhere in next
-  # invocations; [:EGI] vs [:egi]?    
+  omniauth_providers = Devise.omniauth_configs.keys
   # Include default devise modules (Ensure omniauthable is included in all feature flags)
-  devise :omniauthable, omniauth_providers: [:EGI]
+  devise :omniauthable, omniauth_providers: omniauth_providers
   if TeSS::Config.feature['login_through_oidc_only']
     devise :database_authenticatable, :confirmable, :trackable, :validatable,
-           :omniauthable, omniauth_providers: [:egi], :authentication_keys => [:login]
+           :authentication_keys => [:login]
   elsif TeSS::Config.feature['registration']
     devise :database_authenticatable, :confirmable, :registerable, :invitable, :recoverable, :rememberable, :trackable,
-           :validatable, :omniauthable, omniauth_providers: [:egi], :authentication_keys => [:login]
+           :validatable, :authentication_keys => [:login]
   elsif TeSS::Config.feature['invitation']
     devise :database_authenticatable, :confirmable, :invitable, :recoverable, :rememberable, :trackable,
-           :validatable, :omniauthable, omniauth_providers: [:egi], :authentication_keys => [:login]
+           :validatable, :authentication_keys => [:login]
   else
     devise :database_authenticatable, :confirmable, :recoverable, :rememberable, :trackable, :validatable,
-           :omniauthable, omniauth_providers: [:egi], :authentication_keys => [:login]
+           :authentication_keys => [:login]
   end
 
   auto_strip_attributes :username, squish: false
