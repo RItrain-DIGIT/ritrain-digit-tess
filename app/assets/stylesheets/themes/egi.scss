@@ -1,6 +1,6 @@
 @import "bootstrap/mixins";
+
 $theme-base: 'themes/egi';
-@import "mixins/modern_base";
 
 // RItrain-DIGIT Palette
 $egi-blue: #009FE3;
@@ -8,9 +8,14 @@ $egi-dark-blue: #312783;
 $white: #ffffff;
 $gray-dark: #333333;
 
+@import "mixins/modern_base";
+
 // TeSS/Bootstrap Variable Overrides
 $brand-primary: $egi-blue;
 $brand-secondary: $egi-dark-blue;
+$btn-primary-color: $white;
+$btn-primary-bg: $egi-blue;
+$btn-primary-border: darken($egi-blue, 5%);
 
 // RItrain-DIGIT theme variables
 $navbar-bg: $egi-blue;
@@ -51,9 +56,17 @@ $navbar-default-link-active-color: $white;
 
 // Ensure buttons match brand
 .btn-primary {
-  background-color: $brand-primary;
-  border-color: darken($brand-primary, 5%);
+  background-color: $egi-blue;
+  border-color: darken($egi-blue, 5%);
   color: $white;
+}
+
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus {
+  background-color: darken($egi-blue, 5%) !important;
+  border-color: darken($egi-blue, 10%) !important;
+  color: $white !important;
 }
 
 // Consistent Headers
