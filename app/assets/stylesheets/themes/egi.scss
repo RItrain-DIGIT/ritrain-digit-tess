@@ -1,42 +1,51 @@
+@import "bootstrap/mixins";
+$theme-base: 'themes/egi';
 @import "mixins/modern_base";
-
-@import "../application";
-
-// EGI Color Palette
-//$egi-blue: #004b8d;
-//$egi-light-blue: #eef5fb;
-//$white: #ffffff;
-//$gray-dark: #333333;
 
 // RItrain-DIGIT Palette
 $egi-blue: #009FE3;
-$egi-light-blue: #312783;
+$egi-dark-blue: #312783;
 $white: #ffffff;
 $gray-dark: #333333;
 
 // TeSS/Bootstrap Variable Overrides
-$navbar-bg: $egi-blue;
-$navbar-link-color: $white;
 $brand-primary: $egi-blue;
-$brand-secondary: $egi-light-blue;
+$brand-secondary: $egi-dark-blue;
 
-// Applying styles
-.navbar-default {
-  background-color: $navbar-bg;
-  border-color: darken($egi-blue, 10%);
+// RItrain-DIGIT theme variables
+$navbar-bg: $egi-blue;
 
-  .navbar-nav > li > a {
-    color: $navbar-link-color;
-  }
+$navbar-default-color: $white;
+$navbar-default-bg: $egi-blue;
+$navbar-default-border: darken($egi-blue, 10%);
+$navbar-default-link-color: $white;
+$navbar-default-link-hover-color: $white;
+$navbar-default-link-active-color: $white;
+
+@import "../application";
+
+/// Default styles tweaks
+
+.navbar-default .navbar-nav > .open > a,
+.navbar-default .navbar-nav > .open > a:hover,
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus {
+  background-color: lighten($secondary-color, 5%);
+}
+
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover {
+  background-color: $secondary-color;
 }
 
 .unified-header .navbar-brand img {
-  $navbar-img-margin: 4px;
+  $ritd-navbar-img-margin: 4px;
   // override !important style from modern_base
-  max-height: calc(100% - #{$navbar-img-margin} * 2) !important;
-  background-color: #FFFFFF;
+  max-height: calc(100% - #{$ritd-navbar-img-margin} * 2) !important;
+  // put the image in white circle, because it is a blue image on blue background
+  background-color: #FFF;
   border-radius: 100%;
-  margin-top: $navbar-img-margin;
+  margin-top: $ritd-navbar-img-margin;
   padding: 8px;
 }
 
