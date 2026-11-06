@@ -1259,7 +1259,19 @@ en:
     spaces:
       title: What are spaces?
       description: |
-        Spaces are customizable, community-managed sub-portals within %{site_name}, each with their own catalogue of training content.
+       Spaces are customizable, community-managed sub-portals within %{site_name}, each with its own catalogue of training content.
+       Some spaces are private. That means you can see and have access to them only if you are in at least one of the required groups for each of them.
+    groups:
+      title: What are Groups?
+      description: |
+        Groups is a feature which for now is used only to manage access of private spaces.
+        A user being part of a group has access to every private space which requires the group.
+        Each group has multiple owners. An owner can add and remove people to the group.
+    collaborators:
+      title: What are %{attribute}?
+      description: |
+        %{attribute} are other %{site_name} users who can edit this %{resource_type}. Only
+        the %{resource_type}owner can add and remove %{attribute}.
   orcid:
     error: 'An error occurred whilst trying to authenticate your ORCID.'
     link: 'Link your ORCID'
