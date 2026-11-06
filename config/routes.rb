@@ -37,7 +37,7 @@ Rails.application.routes.draw do
       registrations: 'tess_devise/registrations',
       invitations: 'tess_devise/invitations',
       sessions: 'tess_devise/sessions',
-      omniauth_callbacks: 'users/omniauth_callbacks'
+      omniauth_callbacks: 'callbacks'
     }
   end
   #Redirect to users index page after devise user account update
