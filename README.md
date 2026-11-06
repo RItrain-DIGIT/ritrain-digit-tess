@@ -20,7 +20,7 @@ For setup instructions, see the [RItrain-DIGIT TeSS guide](docs/ritrain-digit.md
 - Automated, periodic import (scraping) of resources
 - Email subscriptions
 - JSON API
-- Embeddable [widgets](https://github.com/RItrain-DIGIT/ritrain-digit-tess_widgets)
+- Embeddable [widgets](https://github.com/ElixirTeSS/TeSS_widgets)
 - iCal export
 - Semantic web-friendly - [Bioschemas](https://bioschemas.org/) and [EDAM Ontology](https://edamontology.org/) integration
 - Administration and curation features for managing users and content
