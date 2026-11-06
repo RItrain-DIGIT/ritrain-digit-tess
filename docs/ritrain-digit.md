@@ -37,7 +37,10 @@ cp config/secrets.example.yml config/secrets.yml
 cp config/ingestion.example.yml config/ingestion.example.yml
 ```
 
-Edit `.env` and replace placeholder credentials and API keys with deployment-specific values. The RItrain-DIGIT version of `env.sample` includes additional settings for EGI authentication, the EGI LLM integration, and custom ingestors. Configure the values for the integrations you intend to use. `tess.yml` controls TeSS features and branding; `secrets.yml` holds application secrets and external service credentials.
+Edit `.env` and replace placeholder credentials with deployment-specific values; it holds only Docker and infrastructure settings (`PREFIX`, `TESS_BASE_HOST`, database, admin user). Application settings live in the other two files:
+
+- `tess.yml` controls TeSS features and branding, the EGI LLM endpoint and model (`egi_llm`), and the settings of the custom ingestors (`ingestors`).
+- `secrets.yml` holds application secrets and external service credentials, including the EGI Check-in credentials (`egi`) and the EGI LLM API key (`egi_llm_api_key`). The EGI login button is shown only when `egi.client_id` is set.
 
 ## Running the application
 
@@ -76,6 +79,14 @@ docker compose -f docker-compose-prod.yml exec app bundle exec rake db:migrate
 ```
 
 Uploaded files are kept in the `uploads` volume when application containers are replaced. Back up this volume separately as described below.
+
+### Import training materials
+
+To fetch the training materials, run:
+
+```sh
+docker exec -it ritrain-app bundle exec rake tess:automated_ingestion
+```
 
 ## Backups and restores
 

@@ -875,9 +875,8 @@ en:
       title: Institutional Login
       description: ''
       providers:
-        egi_aai: OpenID Connect
-        #log_in_with: 'Login with %{provider}'
-      log_in_with: 'Login with EGI Check-in'
+        egi: EGI Check-In
+      log_in_with: Login with
       admin: Admin
   ingestion:
     categories:

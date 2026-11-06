@@ -271,6 +271,20 @@ default: &default
   llm_scraper:
     model:
     model_version:
+  egi_llm: # EGI LLM chat widget, the API key is set in secrets.yml (egi_llm_api_key)
+    server_url: https://llm.ai.egi.eu/v1/chat/completions
+    # Available models: glm, qwen3.5, qwen3.8-flash-next, qwen3.8-27b, gpt-oss-120b, glm-5.2, kimi-k3, mistral-small-4:119b
+    model: glm
+    timeout: 240 # in seconds
+  ingestors: # Settings of the RItrain-DIGIT ingestors
+    evita:
+      gitlab_url: https://code.europa.eu
+      project_path: eurohpc-ju/evita
+    hpc_portal:
+      base_url: https://hpc-portal.eu
+      max_pages: 1500
+      request_delay: 0.3 # in seconds
+      include_general_events: false
   scraper_event_check:
     enabled: false
     stale_threshold: 0.3

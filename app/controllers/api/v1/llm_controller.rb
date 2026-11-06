@@ -124,17 +124,18 @@ class Api::V1::LlmController < ApplicationController
   private
 
   def process_llm_request(messages:)
-    endpoint = ENV.fetch("EGI_LLM_SERVER_URL") do
-      raise "EGI_LLM_SERVER_URL is *NOT* configured"
-    end
+    llm_config = TeSS::Config.egi_llm || {}
 
-    api_token = ENV.fetch("EGI_LLM_API_KEY") do
-      raise "EGI_LLM_API_KEY is *NOT* configured"
-    end
+    endpoint = llm_config[:server_url].presence ||
+               raise("egi_llm.server_url is *NOT* configured in tess.yml")
 
-    model = ENV.fetch("EGI_LLM_MODEL") do
-      raise "EGI_LLM_MODEL is *NOT* configured"
-    end
+    api_token = Rails.application.config.secrets.egi_llm_api_key.presence ||
+                raise("egi_llm_api_key is *NOT* configured in secrets.yml")
+
+    model = llm_config[:model].presence ||
+            raise("egi_llm.model is *NOT* configured in tess.yml")
+
+    timeout = llm_config.fetch(:timeout, 240).to_i
 
     uri = URI.parse(endpoint)
     outbound_request = Net::HTTP::Post.new(uri)
@@ -150,8 +151,8 @@ class Api::V1::LlmController < ApplicationController
 
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = (uri.scheme == "https")
-    http.open_timeout = ENV.fetch('EGI_LLM_TIMEOUT', 240).to_i
-    http.read_timeout = ENV.fetch('EGI_LLM_TIMEOUT', 240).to_i
+    http.open_timeout = timeout
+    http.read_timeout = timeout
 
     Rails.logger.info("[LLM] Sending outbound request to: #{endpoint}")
     
@@ -269,13 +270,6 @@ class Api::V1::LlmController < ApplicationController
   end
 
   # ------------------------------------------------------------------
-  # TeSS base URL
-  # ------------------------------------------------------------------
-  def tess_base_url
-    ENV["TESS_BASE_URL"].presence
-  end
-
-  # ------------------------------------------------------------------
   # TeSS connection
   # ------------------------------------------------------------------
   def tess_connection(base_url)
@@ -288,10 +282,7 @@ class Api::V1::LlmController < ApplicationController
   end
 
   def tess_base_url
-    (
-      Rails.application.credentials.dig(:tess, :base_url) ||
-      ENV['TESS_BASE_URL'] 
-    ).to_s.chomp('/')
+    TeSS::Config.base_url.to_s.chomp('/')
   end
 
   def normalize_tess_response(response)

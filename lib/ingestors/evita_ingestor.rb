@@ -6,21 +6,6 @@ require 'ostruct'
 
 module Ingestors
   class EvitaIngestor < Ingestor
-
-    GITLAB_API_BASE = ENV.fetch('GITLAB_API_URL').strip.freeze
-    GITLAB_API_BASE_URL = (GITLAB_API_BASE + '/api/v4').freeze
-    GITLAB_PROJECT_PATH = ENV.fetch('GITLAB_PROJECT_PATH').strip.freeze
-    GITLAB_PROJECT_URL = (GITLAB_API_BASE + GITLAB_PROJECT_PATH).freeze
-
-    GITLAB_PAGES_URL = ENV.fetch(
-      'GITLAB_PAGES_URL',
-      GITLAB_PROJECT_URL
-    ).strip.freeze
-
-    unless GITLAB_API_BASE_URL.match?(%r{\Ahttps://})
-      raise "Invalid GITLAB_API_BASE_URL: #{GITLAB_API_BASE_URL}"
-    end
-
     def self.config
       {
         key: 'gitlab_ingestor',
@@ -32,8 +17,8 @@ module Ingestors
     end
 
     def read(source_url)
-      group_path = ERB::Util.url_encode(GITLAB_PROJECT_PATH)
-      api_url = "#{GITLAB_API_BASE_URL}/groups/#{group_path}/projects"
+      group_path = ERB::Util.url_encode(gitlab_project_path)
+      api_url = "#{gitlab_api_base_url}/groups/#{group_path}/projects"
 
       Rails.logger.info("GitLab group projects API URI: #{api_url}")
 
@@ -49,11 +34,11 @@ module Ingestors
       projects = JSON.parse(response.body)
 
       unless projects.is_a?(Array)
-        raise "Unexpected response for group #{GITLAB_PROJECT_PATH}"
+        raise "Unexpected response for group #{gitlab_project_path}"
       end
 
       if projects.empty?
-        Rails.logger.warn("No accessible projects found in GitLab group: #{GITLAB_PROJECT_PATH}")
+        Rails.logger.warn("No accessible projects found in GitLab group: #{gitlab_project_path}")
         return
       end
 
@@ -91,6 +76,21 @@ module Ingestors
     end
 
     private
+
+    def gitlab_settings
+      TeSS::Config.dig(:ingestors, :evita) || {}
+    end
+
+    def gitlab_project_path
+      gitlab_settings[:project_path].to_s.strip
+    end
+
+    def gitlab_api_base_url
+      url = "#{gitlab_settings[:gitlab_url].to_s.strip.chomp('/')}/api/v4"
+      raise "Invalid GitLab API URL: #{url}" unless url.match?(%r{\Ahttps://})
+
+      url
+    end
 
     def extract_material(project_data)
     {

@@ -8,10 +8,9 @@ require 'date'
 
 module Ingestors
   class HpcPortalIngestor < Ingestor
-    HPC_PORTAL_BASE_URL = ENV.fetch(
-      'HPC_PORTAL_BASE_URL',
-      'https://hpc-portal.eu'
-    ).chomp('/').freeze
+    HPC_PORTAL_SETTINGS = (TeSS::Config.dig(:ingestors, :hpc_portal) || {}).freeze
+
+    HPC_PORTAL_BASE_URL = HPC_PORTAL_SETTINGS[:base_url].to_s.chomp('/').freeze
 
     HPC_PORTAL_TRAINING_URL = "#{HPC_PORTAL_BASE_URL}/training".freeze
     HPC_PORTAL_EVENTS_URL = "#{HPC_PORTAL_BASE_URL}/news/events".freeze
@@ -19,17 +18,12 @@ module Ingestors
     PROVIDER = 'HPC Portal'.freeze
     USER_AGENT = 'HPC Portal Ingestor'.freeze
 
-    HPC_PORTAL_MAX_PAGES = ENV.fetch(
-      'HPC_PORTAL_MAX_PAGES',
-      '1500'
-    ).to_i
+    HPC_PORTAL_MAX_PAGES = HPC_PORTAL_SETTINGS[:max_pages].to_i
 
-    HPC_PORTAL_REQUEST_DELAY = ENV.fetch(
-      'HPC_PORTAL_REQUEST_DELAY', '0.3'
-    ).to_f
+    HPC_PORTAL_REQUEST_DELAY = HPC_PORTAL_SETTINGS[:request_delay].to_f
 
-    HPC_PORTAL_INCLUDE_GENERAL_EVENTS = ENV.fetch(
-      'HPC_PORTAL_INCLUDE_GENERAL_EVENTS', 'false') == 'true'
+    HPC_PORTAL_INCLUDE_GENERAL_EVENTS =
+      ActiveModel::Type::Boolean.new.cast(HPC_PORTAL_SETTINGS[:include_general_events]) || false
 
     TRACKING_PARAMETERS = %w[
       utm_source utm_medium utm_campaign utm_content utm_term
