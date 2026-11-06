@@ -65,7 +65,7 @@ class Api::V1::LlmController < ApplicationController
     # --------------------------------------------------------------
     # Forward request to EGI LLM service
     # --------------------------------------------------------------
-    Rails.logger.info("============================================")
+    Rails.logger.info("===========================================")
     Rails.logger.info("[LLM] Retrieving data ... (IN PROGRESS)    ")
 
     llm_result = process_llm_request(
@@ -81,9 +81,9 @@ class Api::V1::LlmController < ApplicationController
     Rails.logger.info("[LLM] Data *RETRIEVED* from the server")
     Rails.logger.info("\n #{JSON.pretty_generate(llm_result)}")
     
-    Rails.logger.info("============================================")
-    Rails.logger.info("[TeSS + LLM] Merging the data collected ....")
-    Rails.logger.info("============================================")
+    Rails.logger.info("===========================================")
+    Rails.logger.info("[TeSS + LLM] Merging the data collected ...")
+    Rails.logger.info("===========================================")
 
     final_result = {
       "tess" => tess_data,
@@ -155,9 +155,25 @@ class Api::V1::LlmController < ApplicationController
     http.read_timeout = timeout
 
     Rails.logger.info("[LLM] Sending outbound request to: #{endpoint}")
+    Rails.logger.info(
+      "[LLM] Request diagnostics: " \
+      "Method=#{outbound_request.method} " \
+      "Host=#{uri.host} " \
+      "Path=#{uri.path} " \
+      "Body_bytes=#{outbound_request.body.bytesize} " \
+      "Content_type=#{outbound_request['Content-Type']} " \
+      "Accept=#{outbound_request['Accept']} " \
+      "Authorization_present=#{!outbound_request['Authorization'].to_s.empty?}"
+    )
     
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     response = http.request(outbound_request)
-    Rails.logger.info("[LLM] Outbound HTTP status=#{response.code}")
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+
+    Rails.logger.info(
+      "[LLM] Outbound HTTP status=#{response.code},
+       Elapsed=#{elapsed.round(2)}s"
+    )
 
     unless response.is_a?(Net::HTTPSuccess)
       Rails.logger.error("[LLM] Outbound request FAILED with HTTP: #{response.code}")
