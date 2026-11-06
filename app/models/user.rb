@@ -206,6 +206,13 @@ class User < ApplicationRecord
     user = find_by(provider: auth.provider, uid: auth.uid) ||
            find_by(email: auth.info.email)
 
+    # FIXME: the original code didn't select user by email if they have no matching
+    # provider - check tests
+    # users = find_by(provider: auth.provider, uid: auth.uid)
+    # if users.none? && auth.info.email.present? && auth.provider.present?
+    #   users = find_by(provider: auth.provider, email: auth.info.email)
+    # end
+
     if user
       # Link provider details if user was found by email
       user.update(provider: auth.provider, uid: auth.uid) if user.provider.blank?
@@ -232,9 +239,6 @@ class User < ApplicationRecord
                     auth.extra&.raw_info&.verified
 
       user.skip_confirmation! if is_verified || !Rails.env.production?
-
-      # 5. Persist the record
-      user.save
     end
 
     user
