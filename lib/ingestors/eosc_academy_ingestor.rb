@@ -250,6 +250,10 @@ module Ingestors
 
       path = uri.path.downcase
 
+      # /events/YYYY-MM-DD pages do not exist (404) - these are wrongly generated
+      # calendar-day links on calendar web page
+      return false if path.match?(%r{\A/events/\d{4}-\d{2}-\d{2}/?\z})
+
       return true if path == '/academy'
       return true if path.start_with?('/academy/')
 
