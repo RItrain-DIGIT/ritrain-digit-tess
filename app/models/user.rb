@@ -202,40 +202,47 @@ class User < ApplicationRecord
   end
 
   def self.from_omniauth(auth)
-    # 1. Match by provider + uid, or fall back to matching by email
-    user = find_by(provider: auth.provider, uid: auth.uid) ||
-           find_by(email: auth.info.email)
+    # TODO: Decide what to do about users who have an account but authenticate later on via Elixir AAI.
+    # TODO: The code below will update their account to note the Elixir auth. but leave their password intact;
+    # TODO: is this what we should be doing?
 
-    # FIXME: the original code didn't select user by email if they have no matching
-    # provider - check tests
-    # users = find_by(provider: auth.provider, uid: auth.uid)
-    # if users.none? && auth.info.email.present? && auth.provider.present?
-    #   users = find_by(provider: auth.provider, email: auth.info.email)
-    # end
+    # find by provider and { uid or email}
+    users = User.where(provider: auth.provider, uid: auth.uid)
+    if users.none? && auth.info.email.present? && auth.provider.present?
+      users = User.where(provider: auth.provider, email: auth.info.email)
+    end
+
+    # get first user
+    user = users.first
 
     if user
-      # Link provider details if user was found by email
-      user.update(provider: auth.provider, uid: auth.uid) if user.provider.blank?
+      # update provider and uid if present
+      if user.provider.nil? and user.uid.nil?
+        user.uid = auth.uid
+        user.provider = auth.provider
+        user.save
+      end
     else
-      # 2. Extract profile details and unique username
-      first_name = auth.info.first_name || auth.info.given_name
-      last_name  = auth.info.last_name  || auth.info.family_name
-      username   = User.username_from_auth_info(auth.info)
+      # set name components
+      first_name = auth.info.first_name
+      first_name ||= auth.info.given_name
+      last_name = auth.info.last_name
+      last_name ||= auth.info.family_name
 
-      # 3. Build new user record
-      user = User.new(
-        provider: auth.provider,
-        uid: auth.uid,
-        email: auth.info.email,
-        username: username,
-        password: Devise.friendly_token[0, 20],
-        processing_consent: '1', # Bypasses consents_to_processing validation
-        profile_attributes: { firstname: first_name, surname: last_name }
+      # create user
+      username = User.username_from_auth_info(auth.info)
+      user = User.new(provider: auth.provider,
+                      uid: auth.uid,
+                      email: auth.info.email,
+                      username: username,
+                      password: Devise.friendly_token[0, 20],
+                      processing_consent: '1', # Bypasses consents_to_processing validation
+                      profile_attributes: { firstname: first_name, surname: last_name },
       )
 
-      # 4. Email verification logic
+      # Email verification logic
       is_verified = auth.info.email_verified ||
-                    auth.extra&.raw_info&.email_verified || 
+                    auth.extra&.raw_info&.email_verified ||
                     auth.extra&.raw_info&.verified
 
       user.skip_confirmation! if is_verified || !Rails.env.production?
