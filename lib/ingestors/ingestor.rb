@@ -78,6 +78,7 @@ module Ingestors
         end
       rescue PrivateAddressCheck::PrivateConnectionAttemptedError
         raise "Couldn't open URL #{url}" if raise
+
         @messages << "Couldn't open URL #{url}"
 
         nil
@@ -94,12 +95,17 @@ module Ingestors
     end
 
     def get_html_from_url(url)
-      response = HTTParty.get(url, follow_redirects: true, headers: { 'User-Agent' => config[:user_agent] })
+      response = HTTParty.get(
+        url,
+        follow_redirects: true,
+        headers: { 'User-Agent' => config[:user_agent] }
+      )
+
       Nokogiri::HTML(response.body)
     end
 
     # Some URLs automatically redirects the user to another webpage
-    # This method gets a URL and returns the last redirected URL (as shown by a 30X response or a `meta[http-equiv="Refresh"]` tag)
+    # This method gets a URL and returns the last redirected URL
     def get_redirected_url(url, limit = 5) # rubocop:disable Metrics/AbcSize
       raise 'Too many redirects' if limit.zero?
 
@@ -148,7 +154,7 @@ module Ingestors
                                            verify_ssl: false,
                                            headers: { accept: accept_params } }.merge(kwargs)).execute
       # check response
-      raise "invalid response code: #{response.code}" unless response.code == 200
+      raise "Invalid response code: #{response.code}" unless response.code == 200
 
       JSON.parse(response.to_str)
     end
@@ -197,10 +203,20 @@ module Ingestors
         next unless responsible_for?(existing_resource, resource, source)
 
         update = existing_resource
+
+        attributes =
+          if resource.respond_to?(:attributes)
+            resource.attributes
+          else
+            resource.to_h
+          end
+
+        attributes ||= {}
+
         resource = if update
-                     update_resource(existing_resource, resource.to_h)
+                     update_resource(existing_resource, attributes)
                    else
-                     type.new(resource.to_h)
+                     type.new(attributes.except('id', :id))
                    end
 
         resource.language ||= source&.default_language if resource.has_attribute?(:language) && resource.new_record?
@@ -218,9 +234,7 @@ module Ingestors
           end
 
           if update
-            if resource.log_update_activity?
-              resource.create_activity(:update, owner: user, parameters: activity_params)
-            end
+            resource.create_activity(:update, owner: user, parameters: activity_params) if resource.log_update_activity?
           else
             resource.create_activity(:create, owner: user, parameters: activity_params)
           end
@@ -240,13 +254,6 @@ module Ingestors
     end
 
     def responsible_for?(existing_resource, new_resource, source)
-      # Stay with the existing source if there is one, to avoid constantly changing metadata back and forth.
-      # Switch responsibility if the new source provides a higher number of considered metadata fields, or
-      # if the considered field count is the same but a significantly longer description is available.
-      # This prefers a source closest to the original one (likely the first) and switches sources when
-      # originally scraped simple metadata is extended manually at an intermediate source.
-      # When there are no external changes, the source can only switch a limited number of times.
-
       return true unless source && existing_resource
       return true if existing_resource.last_scraped_by_source.nil?
       return true if existing_resource.last_scraped_by_source == source
@@ -265,14 +272,30 @@ module Ingestors
     end
 
     def find_existing(type, resource)
-      type.check_exists(resource.to_h)
+      attributes = resource.respond_to?(:attributes) ? resource.attributes : resource.to_h
+      type.check_exists(attributes)
     end
 
     def update_resource(existing_resource, fields)
-      # overwrite unlocked attributes
+      # Overwrite unlocked attributes, but never overwrite primary key or ownership.
       FieldLock.strip_locked_fields(fields, existing_resource.locked_fields)
 
-      fields.except(:content_provider_id, :user_id).each do |attr, value|
+      primary_key = existing_resource.class.primary_key
+
+      protected_fields = [
+        primary_key,
+        primary_key.to_sym,
+        :content_provider_id,
+        'content_provider_id',
+        :user_id,
+        'user_id',
+        :created_at,
+        'created_at',
+        :updated_at,
+        'updated_at'
+      ]
+
+      fields.except(*protected_fields).each do |attr, value|
         existing_resource.send("#{attr}=", value)
       end
 

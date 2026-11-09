@@ -277,6 +277,10 @@ default: &default
     model: glm
     timeout: 240 # in seconds
   ingestors: # Settings of the RItrain-DIGIT ingestors
+    eudat:
+      base_host: www.eudat.eu
+    eosc:
+      base_host: eosc.eu
     evita:
       gitlab_url: https://code.europa.eu
       project_path: eurohpc-ju/evita

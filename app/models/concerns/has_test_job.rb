@@ -72,11 +72,10 @@ module HasTestJob
       value.transform_values { |v| deep_hashify(v) }
     when Array
       value.map { |v| deep_hashify(v) }
-    when Event
+    when Material, Event
       deep_hashify(value.attributes)
     else
       value
     end
   end  
 end
-

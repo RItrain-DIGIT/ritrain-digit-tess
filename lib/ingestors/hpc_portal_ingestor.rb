@@ -3,14 +3,14 @@ require 'rest-client'
 require 'uri'
 require 'ostruct'
 require 'nokogiri'
-require 'set'
 require 'date'
 
 module Ingestors
   class HpcPortalIngestor < Ingestor
-    HPC_PORTAL_SETTINGS = (TeSS::Config.dig(:ingestors, :hpc_portal) || {}).freeze
-
-    HPC_PORTAL_BASE_URL = HPC_PORTAL_SETTINGS[:base_url].to_s.chomp('/').freeze
+    HPC_PORTAL_BASE_URL = ENV.fetch(
+      'HPC_PORTAL_BASE_URL',
+      'https://hpc-portal.eu'
+    ).chomp('/').freeze
 
     HPC_PORTAL_TRAINING_URL = "#{HPC_PORTAL_BASE_URL}/training".freeze
     HPC_PORTAL_EVENTS_URL = "#{HPC_PORTAL_BASE_URL}/news/events".freeze
@@ -18,12 +18,18 @@ module Ingestors
     PROVIDER = 'HPC Portal'.freeze
     USER_AGENT = 'HPC Portal Ingestor'.freeze
 
-    HPC_PORTAL_MAX_PAGES = HPC_PORTAL_SETTINGS[:max_pages].to_i
+    HPC_PORTAL_MAX_PAGES = ENV.fetch(
+      'HPC_PORTAL_MAX_PAGES',
+      '1500'
+    ).to_i
 
-    HPC_PORTAL_REQUEST_DELAY = HPC_PORTAL_SETTINGS[:request_delay].to_f
+    HPC_PORTAL_REQUEST_DELAY = ENV.fetch(
+      'HPC_PORTAL_REQUEST_DELAY', '0.3'
+    ).to_f
 
-    HPC_PORTAL_INCLUDE_GENERAL_EVENTS =
-      ActiveModel::Type::Boolean.new.cast(HPC_PORTAL_SETTINGS[:include_general_events]) || false
+    HPC_PORTAL_INCLUDE_GENERAL_EVENTS = ENV.fetch(
+      'HPC_PORTAL_INCLUDE_GENERAL_EVENTS', 'false'
+    ) == 'true'
 
     TRACKING_PARAMETERS = %w[
       utm_source utm_medium utm_campaign utm_content utm_term
@@ -37,7 +43,7 @@ module Ingestors
     ].freeze
 
     ASSET_EXTENSIONS =
-      /\.(?:pdf|png|jpe?g|gif|svg|zip|docx?|xlsx?|pptx?|mp4|mp3)$/i.freeze
+      /\.(?:pdf|png|jpe?g|gif|svg|zip|docx?|xlsx?|pptx?|mp4|mp3)$/i
 
     LISTING_PATHS = %w[
       /training
@@ -74,9 +80,7 @@ module Ingestors
     def read(source_url = nil)
       start_url = source_url.presence || HPC_PORTAL_TRAINING_URL
 
-      unless valid_crawl_url?(start_url)
-        raise ArgumentError, "Invalid HPC Portal URL: #{start_url}"
-      end
+      raise ArgumentError, "Invalid HPC Portal URL: #{start_url}" unless valid_crawl_url?(start_url)
 
       @materials = []
       @events = []
@@ -179,13 +183,13 @@ module Ingestors
 
                 else
                   Rails.logger.debug(
-                    "[HPC Portal] Short course event already stored: " \
+                    '[HPC Portal] Short course event already stored: ' \
                     "#{title.inspect} (#{event_url})"
                   )
                 end
               else
                 Rails.logger.warn(
-                  "[HPC Portal] Short-course conversion returned an " \
+                  '[HPC Portal] Short-course conversion returned an ' \
                   "invalid title or URL: #{url}"
                 )
               end
@@ -200,7 +204,6 @@ module Ingestors
           if detail_page?(document, url)
             detail_pages += 1
             material = extract_material(document, url)
-            #material = extract_formatted_text(document)
 
             if material.is_a?(Hash)
               material_url = material[:url] || material['url'] || url
@@ -228,7 +231,6 @@ module Ingestors
             queue << canonical
             queued.add(canonical)
           end
-
         rescue RestClient::ExceptionWithResponse => e
           Rails.logger.warn(
             "[HPC Portal] HTTP error for #{url} #{e.message}"
@@ -249,7 +251,7 @@ module Ingestors
 
       if queue.any?
         Rails.logger.warn(
-          "[HPC Portal] Maximum page limit reached " \
+          '[HPC Portal] Maximum page limit reached ' \
           "(#{HPC_PORTAL_MAX_PAGES}). #{queue.size} URLs remain queued."
         )
       end
@@ -283,12 +285,6 @@ module Ingestors
         controller.params = { material: material }
 
         material = OpenStruct.new(controller.send(:material_params))
-        date = material.start_date if material.respond_to?(:start_date)
-        
-        date ||= extract_date_from_description(
-          material.respond_to?(:description) ? material.description : nil
-        )
-
       end
 
       material = handle_auto_parsing(material)
@@ -585,34 +581,30 @@ module Ingestors
       end
 
       events = cards.filter_map do |card|
-        begin
-          event = extract_listing_event(card, page_url)
+        event = extract_listing_event(card, page_url)
 
-          unless event.is_a?(Hash)
-            Rails.logger.debug(
-              "[HPC Portal] Candidate rejected: " \
-              "#{clean_text(card.text)[0, 200].inspect}"
-            )
-            next
-          end
-
-          event
-        rescue StandardError => e
-          Rails.logger.warn(
-            "[HPC Portal] Failed to extract candidate: " \
-            "#{e.class}: #{e.message} (URL=#{page_url})"
+        unless event.is_a?(Hash)
+          Rails.logger.debug(
+            '[HPC Portal] Candidate rejected: ' \
+            "#{clean_text(card.text)[0, 200].inspect}"
           )
-          nil
+          next
         end
+
+        event
+      rescue StandardError => e
+        Rails.logger.warn(
+          '[HPC Portal] Failed to extract candidate: ' \
+          "#{e.class}: #{e.message} (URL=#{page_url})"
+        )
+        nil
       end
 
       seen = Set.new
-      events = events.select do |event|
+      events.select do |event|
         key = event_key(event)
         key.present? && seen.add?(key)
       end
-
-      events
     end
 
     def extract_listing_event(card, page_url)
@@ -682,7 +674,8 @@ module Ingestors
 
       # Preserve formatting for the event description
       description = extract_markdown_blocks(clean_card)
-      return nil if description.blank?
+      # return nil if description.blank?
+      description ||= ''
 
       # Use plain text for event metadata and classification
       text = clean_text(clean_card.text)
@@ -751,98 +744,94 @@ module Ingestors
     # NEW: Convert a short-course detail page into an event.
     # ---------------------------------------------------------------
     def extract_short_course_event(document, page_url)
-     title = clean_text(document.at_css('h1')&.text)
-     return if title.empty?
+      title = clean_text(document.at_css('h1')&.text)
+      return if title.empty?
 
-     clean_content = document.at_css('main, article, .region-content, .content')
-     clean_content ||= document
+      clean_content = document.at_css('main, article, .region-content, .content')
+      clean_content ||= document
 
-     clean_content = clean_content.dup
-     clean_content.css(
-      'script, style, nav, header, footer, aside, ' \
-      '.breadcrumb, .breadcrumbs, .menu, .tabs, ' \
-      '.share, .social, .related-content'
-     ).remove
+      clean_content = clean_content.dup
+      clean_content.css(
+        'script, style, nav, header, footer, aside, ' \
+        '.breadcrumb, .breadcrumbs, .menu, .tabs, ' \
+        '.share, .social, .related-content'
+      ).remove
 
-     # Remove the page title so it is not duplicated in the description.
-     first_heading = clean_content.at_css('h1')
-     first_heading.remove if first_heading
+      # Remove the page title so it is not duplicated in the description.
+      first_heading = clean_content.at_css('h1')
+      first_heading.remove if first_heading
 
-     # Markdown description preserves the original content structure.
-     description = extract_markdown_blocks(clean_content)
-     description = description[0, 5000] if description.present?
-     description = nil if description.blank?
+      # Markdown description preserves the original content structure.
+      description = extract_markdown_blocks(clean_content)
+      description = description[0, 5000] if description.present?
+      description = nil if description.blank?
 
-     # Plain text is still used for metadata extraction.
-     metadata_text = clean_text(clean_content.text)
+      # Plain text is still used for metadata extraction.
+      metadata_text = clean_text(clean_content.text)
 
-     # Extract metadata from the visible course text.
-     metadata = extract_event_metadata_from_text(
-      "#{title} #{metadata_text}"
-     ) || {}
+      # Extract metadata from the visible course text.
+      metadata = extract_event_metadata_from_text(
+        "#{title} #{metadata_text}"
+      ) || {}
 
-     # Prefer structured date values from HTML <time> elements.
-     time_values = clean_content.css('time').filter_map do |node|
-       value = node['datetime'].to_s.strip
-       value = clean_text(node.text) if value.empty?
-       value unless value.empty?
-     end
+      # Prefer structured date values from HTML <time> elements.
+      time_values = clean_content.css('time').filter_map do |node|
+        value = node['datetime'].to_s.strip
+        value = clean_text(node.text) if value.empty?
+        value unless value.empty?
+      end
 
-     structured_dates = time_values
-      .flat_map { |value| extract_event_dates(value) }
-      .compact
-      .uniq
-      .sort
+      structured_dates = time_values
+                         .flat_map { |value| extract_event_dates(value) }
+                         .compact
+                         .uniq
+                         .sort
 
-     if structured_dates.any?
-       metadata[:start_date] = structured_dates.first.iso8601
-       metadata[:end_date] =
-        structured_dates.length > 1 ? structured_dates.last.iso8601 : nil
-     end
+      if structured_dates.any?
+        metadata[:start_date] = structured_dates.first.iso8601
+        metadata[:end_date] =
+          structured_dates.length > 1 ? structured_dates.last.iso8601 : nil
+      end
 
-     registration_url = extract_registration_url(clean_content, page_url)
+      registration_url = extract_registration_url(clean_content, page_url)
 
-     related_links = clean_content.css('a[href]').filter_map do |link|
-      href = link['href'].to_s.strip
-      text = clean_text(link.text)
+      related_links = clean_content.css('a[href]').filter_map do |link|
+        href = link['href'].to_s.strip
+        text = clean_text(link.text)
 
-      next if href.empty? || text.empty?
+        next if href.empty? || text.empty?
 
-      absolute_url = URI.join(page_url, href).to_s
-      next if absolute_url == canonical_url(page_url)
+        absolute_url = URI.join(page_url, href).to_s
+        next if absolute_url == canonical_url(page_url)
 
-      {
-        title: text,
-        url: absolute_url
-      }
+        {
+          title: text,
+          url: absolute_url
+        }
       rescue URI::InvalidURIError
-       nil
+        nil
       end.uniq { |link| link[:url] }
 
       event = {
-       title: title,
-       url: canonical_url(page_url),
-       description: description,
-       registration: registration_url,
-       related_links: related_links
+        title: title,
+        url: canonical_url(page_url),
+        description: description,
+        registration: registration_url,
+        related_links: related_links
       }.merge(metadata).compact
 
-      Rails.logger.info("[>>Event<<]")
-      event.each do |key, value|
-        Rails.logger.info("#{key}: #{value.inspect}")
-      end
-      Rails.logger.info("---------------------------------------------------------------")
+      Rails.logger.info('[>>Event<<]')
+      log_event_details(event)
 
       event
-
-       rescue StandardError => e
-        Rails.logger.error(
-         "[HPC Portal] Failed to convert short course #{page_url}: " \
-         "#{e.class}: #{e.message}"
-        )
-        nil
+    rescue StandardError => e
+      Rails.logger.error(
+        "[HPC Portal] Failed to convert short course #{page_url}: " \
+        "#{e.class}: #{e.message}"
+      )
+      nil
     end
- 
+
     def event_key(event)
       return nil unless event.is_a?(Hash)
 
@@ -851,13 +840,12 @@ module Ingestors
       date = event[:start_date] || event['start_date']
 
       if url.present?
-         canonical_url(url).downcase
+        canonical_url(url).downcase
       elsif title.present?
         "#{title.to_s.downcase.strip}|#{date}"
       end
-
-      rescue URI::InvalidURIError, URI::BadURIError
-       nil
+    rescue URI::InvalidURIError, URI::BadURIError
+      nil
     end
 
     def log_event_details(event)
@@ -923,13 +911,12 @@ module Ingestors
       description = extract_markdown_blocks(content)
       description = description[0, 5000] if description.present?
 
-      links = extract_related_links(content, url)
       text = "#{title} #{description}"
 
       material = {
         title: title,
         description: description.presence ||
-          "#{title} — training resource from HPC Portal.",
+                     "#{title} — training resource from HPC Portal.",
         url: url,
         provider: PROVIDER,
         keywords: extract_keywords(text),
@@ -945,16 +932,12 @@ module Ingestors
         learning_resource_type: 'Training',
         source: PROVIDER,
         source_url: url
-        #related_links: links
       }.compact
 
-      Rails.logger.info("[>>Course<<]")
-      material.each do |key, value|
-        Rails.logger.info("#{key}: #{value.inspect}")
-     end
-     Rails.logger.info("----------------------------------------------------------------")
+      Rails.logger.info('[>>Course<<]')
+      log_material_details(material)
 
-     material
+      material
     end
 
     def extract_markdown_blocks(content)
@@ -970,67 +953,67 @@ module Ingestors
 
       case node.name
       when 'h2', 'h3', 'h4'
-         level = node.name[1].to_i
-         "#{'#' * level} #{clean_text(node.text)}"
+        level = node.name[1].to_i
+        "#{'#' * level} #{clean_text(node.text)}"
       when 'p'
-         inline_markdown(node).strip
+        inline_markdown(node).strip
       when 'ul', 'ol'
-         ordered = node.name == 'ol'
+        ordered = node.name == 'ol'
 
-         items = node.element_children
-                 .select { |child| child.name == 'li' }
-                 .each_with_index.map do |item, index|
-         marker = ordered ? "#{index + 1}." : "-"
-         "#{marker} #{inline_markdown(item).strip}"
-      end
-      items.join("\n")
-      
+        items = node.element_children
+                    .select { |child| child.name == 'li' }
+                    .each_with_index.map do |item, index|
+          marker = ordered ? "#{index + 1}." : '-'
+          "#{marker} #{inline_markdown(item).strip}"
+        end
+        items.join("\n")
+
       when 'blockquote'
-         inline_markdown(node).strip
-           .lines
-           .map { |line| "> #{line.strip}" }
-           .join("\n")
+        inline_markdown(node).strip
+                             .lines
+                             .map { |line| "> #{line.strip}" }
+                             .join("\n")
       when 'div', 'section', 'article', 'main'
-         extract_markdown_blocks(node)
+        extract_markdown_blocks(node)
       when 'pre'
-         "```\n#{node.text.strip}\n```"
+        "```\n#{node.text.strip}\n```"
       else
         inline_markdown(node).strip
-     end
-   end
+      end
+    end
 
-   def inline_markdown(node)
-     node.children.map do |child|
-       if child.text?
+    def inline_markdown(node)
+      node.children.map do |child|
+        if child.text?
           child.text.gsub(/[\u00A0\u2007\u202F]/, ' ')
-       elsif child.element?
+        elsif child.element?
           text = inline_markdown(child)
 
           case child.name
           when 'strong', 'b'
-               "**#{text.strip}**"
+            "**#{text.strip}**"
           when 'em', 'i'
-               "*#{text.strip}*"
+            "*#{text.strip}*"
           when 'code'
-               "`#{text.strip}`"
+            "`#{text.strip}`"
           when 'a'
-               href = child['href'].to_s.strip
+            href = child['href'].to_s.strip
 
-               if href.present? &&
-                  !href.start_with?('javascript:', 'data:')
-                  "[#{text.strip}](#{href})"
-               else
-                  text
-               end
-          when 'br'
-               "\n"
-          else
+            if href.present? &&
+               !href.start_with?('javascript:', 'data:')
+              "[#{text.strip}](#{href})"
+            else
               text
+            end
+          when 'br'
+            "\n"
+          else
+            text
           end
-       else
+        else
           ''
-       end
-     end.join.gsub(/[ \t]+/, ' ').strip
+        end
+      end.join.gsub(/[ \t]+/, ' ').strip
     end
 
     def extract_related_links(content, page_url)
@@ -1079,7 +1062,7 @@ module Ingestors
       end
 
       # European numeric dates: 08/12/2026 or 08.12.2026
-      text.scan(/\b(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})\b/) do |day, month, year|
+      text.scan(%r{\b(\d{1,2})[/.](\d{1,2})[/.](\d{4})\b}) do |day, month, year|
         safely_add_date(dates, year.to_i, month.to_i, day.to_i)
       end
 
@@ -1092,22 +1075,18 @@ module Ingestors
       text.scan(
         /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/i
       ) do |month_name, day, year|
-        begin
-          dates << Date.parse("#{month_name} #{day}, #{year}")
-        rescue Date::Error, ArgumentError
-          next
-        end
+        dates << Date.parse("#{month_name} #{day}, #{year}")
+      rescue Date::Error, ArgumentError
+        next
       end
 
       # European month names: 8 December 2026
       text.scan(
         /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i
       ) do |day, month_name, year|
-        begin
-          dates << Date.parse("#{day} #{month_name} #{year}")
-        rescue Date::Error, ArgumentError
-          next
-        end
+        dates << Date.parse("#{day} #{month_name} #{year}")
+      rescue Date::Error, ArgumentError
+        next
       end
 
       dates.uniq.sort
@@ -1218,35 +1197,35 @@ module Ingestors
 
       # Return ISO 639-1 codes accepted by the TeSS language vocabulary.
       language_patterns = {
-         'en' => /\benglish\b/i,
-         'fr' => /\bfrench\b/i,
-         'de' => /\bgerman\b/i,
-         'es' => /\bspanish\b/i,
-         'nl' => /\bdutch\b/i,
-         'bg' => /\bbulgarian\b/i,
-         'hr' => /\bcroatian\b/i,
-         'cs' => /\bczech\b/i,
-         'da' => /\bdanish\b/i,
-         'et' => /\bestonian\b/i,
-         'fi' => /\bfinnish\b/i,
-         'el' => /\bgreek\b/i,
-         'hu' => /\bhungarian\b/i,
-         'ga' => /\birish\b/i,
-         'it' => /\bitalian\b/i,
-         'lv' => /\blatvian\b/i,
-         'lt' => /\blithuanian\b/i,
-         'mt' => /\bmaltese\b/i,
-         'pl' => /\bpolish\b/i,
-         'pt' => /\bportuguese\b/i,
-         'ro' => /\bromanian\b/i,
-         'sk' => /\bslovak\b/i,
-         'sl' => /\bslovenian\b/i,
-         'sv' => /\bswedish\b/i
+        'en' => /\benglish\b/i,
+        'fr' => /\bfrench\b/i,
+        'de' => /\bgerman\b/i,
+        'es' => /\bspanish\b/i,
+        'nl' => /\bdutch\b/i,
+        'bg' => /\bbulgarian\b/i,
+        'hr' => /\bcroatian\b/i,
+        'cs' => /\bczech\b/i,
+        'da' => /\bdanish\b/i,
+        'et' => /\bestonian\b/i,
+        'fi' => /\bfinnish\b/i,
+        'el' => /\bgreek\b/i,
+        'hu' => /\bhungarian\b/i,
+        'ga' => /\birish\b/i,
+        'it' => /\bitalian\b/i,
+        'lv' => /\blatvian\b/i,
+        'lt' => /\blithuanian\b/i,
+        'mt' => /\bmaltese\b/i,
+        'pl' => /\bpolish\b/i,
+        'pt' => /\bportuguese\b/i,
+        'ro' => /\bromanian\b/i,
+        'sk' => /\bslovak\b/i,
+        'sl' => /\bslovenian\b/i,
+        'sv' => /\bswedish\b/i
       }
 
       # Prefer an explicit language-of-instruction label when present.
       labelled = text.match(
-        /(?:language of instruction|language|taught in)\s*[:\-]\s*([a-z]+)/i
+        /(?:language of instruction|language|taught in)\s*[:-]\s*([a-z]+)/i
       )
 
       candidate = labelled ? labelled[1] : text
@@ -1303,13 +1282,28 @@ module Ingestors
 
       # Individual training-baseline courses, excluding the index page.
       return true if path.match?(
-       %r{\A/training_baseline/(?!training-baseline\z)[^/]+\z}
+        %r{\A/training_baseline/(?!training-baseline\z)[^/]+\z}
       )
 
       false
-     rescue URI::InvalidURIError, TypeError
+    rescue URI::InvalidURIError, TypeError
       false
+    end
+
+    def log_material_details(material)
+      Rails.logger.info(
+        <<~LOG
+          [HPC Portal] Course details...
+            Title:        #{material[:title] || 'Unknown'}
+            URL:          #{material[:url] || 'Unknown'}
+            Provider:     #{material[:provider] || 'Unknown'}
+            Keywords:     #{material[:keywords] || 'Unknown'}
+            Audience:     #{material[:target_audience] || 'Unknown'}
+            Status:       #{material[:status] || 'Unknown'}
+            Type:         #{material[:material_type] || 'Unknown'}
+          ---------------------------------------------------------------------------
+        LOG
+      )
     end
   end
 end
-

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_28_145258) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -365,6 +365,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_29_120000) do
     t.string "lcheck_type"
     t.string "url"
     t.index ["lcheck_type", "lcheck_id"], name: "index_link_monitors_on_lcheck_type_and_lcheck_id"
+  end
+
+  create_table "llm_chat_requests", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.jsonb "messages"
+    t.jsonb "result"
+    t.string "status"
+    t.text "tess_query"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_llm_chat_requests_on_user_id"
   end
 
   create_table "llm_interactions", force: :cascade do |t|
@@ -725,6 +737,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_29_120000) do
   add_foreign_key "learning_paths", "content_providers"
   add_foreign_key "learning_paths", "spaces"
   add_foreign_key "learning_paths", "users"
+  add_foreign_key "llm_chat_requests", "users"
   add_foreign_key "llm_interactions", "events"
   add_foreign_key "materials", "content_providers"
   add_foreign_key "materials", "sources", column: "last_scraped_by_id", on_delete: :nullify
