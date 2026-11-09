@@ -14,10 +14,15 @@
     const sendBtn = document.getElementById("egi-chat-send");
     const inputField = document.getElementById("egi-chat-input");
     const messagesContainer = document.getElementById("egi-chat-messages");
-    const username =
-      toggleBtn.getAttribute("data-username") ||
-      toggleBtn.dataset.username ||
-      "Guest";
+    function getUsername() {
+      return (
+        toggleBtn.getAttribute("data-username") ||
+        toggleBtn.dataset.username ||
+        "Guest"
+      );
+    }
+
+    let username = getUsername();
 
     if (
       !toggleBtn ||
@@ -136,6 +141,31 @@
       }
     }
 
+    // Update the Welcome message in the chatbot interface
+    function updateWelcomeMessage() {
+      const greeting = `Hello, ${username}! How can I assist you today?`;
+
+      const index = transcript.findIndex(function (item) {
+        return (
+          item.type === "message" &&
+          item.role === "assistant" &&
+          /^Hello, .*! How can I assist you today\?$/.test(item.text)
+        );
+      });
+
+      if (index !== -1) {
+        // Update the stored transcript.
+        transcript[index].text = greeting;
+
+        // Update the corresponding DOM element.
+        const messageElement = messagesContainer.children[index];
+
+        if (messageElement) messageElement.textContent = greeting;
+
+        saveChatState();
+      }
+    }
+
     // Keep the latest result key for compatibility with the existing code.
     function saveLastResult(result) {
       try {
@@ -179,6 +209,7 @@
 
     toggleBtn.addEventListener("click", function (event) {
       event.preventDefault();
+      username = getUsername();
 
       const isHidden =
         chatWindow.classList.contains("hidden") ||
@@ -669,6 +700,8 @@
         "assistant",
         `Hello, ${username}! How can I assist you today?`,
       );
+    } else {
+      updateWelcomeMessage();
     }
   }
 
@@ -676,3 +709,4 @@
   document.addEventListener("turbolinks:load", initializeEgiChat);
   document.addEventListener("turbo:load", initializeEgiChat);
 })();
+
