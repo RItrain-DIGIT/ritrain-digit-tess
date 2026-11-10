@@ -20,8 +20,6 @@
 <% ['events', 'materials'].each do |type| %>
   <% resources = test_results[type.to_sym] || [] %>
   <% results_count += resources.count %>
-  <%# FIXME: commented-out old code - maybe to remove %>
-  <!--% sample = resources.sample(sample_size) %-->
   <% sample = resources %>
   <% next if resources.none? %>
 

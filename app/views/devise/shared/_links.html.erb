@@ -25,16 +25,4 @@
         <%= link_to t('devise.links.resend'), new_unlock_path(resource_name) %></li>
   <% end -%>
 
-  <%- if devise_mapping.omniauthable? && Devise.omniauth_configs.key?(:egi) %>
-    <br/><br/>
-    <li>
-      <%= button_to user_egi_omniauth_authorize_path,
-                    method: :post,
-                    data: { turbo: false },
-                    class: "btn btn-primary btn-egi-login" do %>
-        <%= image_tag "EGI_small.png", alt: "EGI Logo", class: "egi-button-logo" %>
-        <span><%= t("providers.egi", default: "Login with EGI Check-in") %></span>
-      <% end -%>
-    </li>
-  <% end -%>
 </ul>

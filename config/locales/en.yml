@@ -876,7 +876,10 @@ en:
       description: ''
       providers:
         egi: EGI Check-In
-      log_in_with: Login with
+        elixir_aai: LS Login
+        oidc: OpenID Connect
+        oidc2: Alternative OpenID Connect
+      log_in_with: 'Login with %{provider}'
       admin: Admin
   ingestion:
     categories:
