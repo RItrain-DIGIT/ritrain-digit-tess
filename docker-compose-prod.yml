@@ -3,8 +3,6 @@ services:
     container_name: ${PREFIX}-nginx
     image: nginx:1.31.6
     restart: unless-stopped
-    # FIXME: maybe development environment should work without SSL (do not need certs)
-    # or event without nginx
     privileged: true
     ports:
       - '443:443'
@@ -14,12 +12,12 @@ services:
           - ${TESS_BASE_HOST}
     volumes:
       - ./nginx:/etc/nginx
-      - ./letsencrypt:/etc/letsencrypt
+      - ./etc/letsencrypt:/etc/letsencrypt
       - uploads:/TeSS/public/system:ro
+      - puma-socket:/run/puma
     depends_on:
       - app
   app:
-    # FIXME: maybe configure Rails app to work on socket file instead of TCP port
     container_name: ${PREFIX}-app
     build:
       context: .
@@ -28,7 +26,7 @@ services:
     image: ${PREFIX}-app
     restart: always
     healthcheck:
-      test: curl -f http://localhost:3000/up
+      test: curl --fail --silent --show-error --unix-socket /run/puma/puma.sock http://localhost/up
       interval: 5s
       timeout: 300s
     env_file: .env
@@ -40,12 +38,14 @@ services:
       - uploads:/code/public/system
       - logs:/code/log
       - tmp:/code/tmp
+      - puma-socket:/run/puma
       - ./config/tess.yml:/code/config/tess.yml
       - ./config/secrets.yml:/code/config/secrets.yml
     environment:
       RAILS_ENV: production
       RAILS_LOG_TO_STDOUT: 'true'
       RAILS_SERVE_STATIC_FILES: 'true'
+      PUMA_SOCKET: /run/puma/puma.sock
   db:
     container_name: ${PREFIX}-db
     logging:
@@ -127,3 +127,4 @@ volumes:
   uploads:
   logs:
   tmp:
+  puma-socket:

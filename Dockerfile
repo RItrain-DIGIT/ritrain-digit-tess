@@ -84,7 +84,7 @@ RUN if [ "$CR" = "True" ]; then \
     fi
 
 
-# run rails server, need bind for docker
+# run Puma on the configured Unix socket
 CMD bundle exec whenever > /code/tess.crontab \
     && (supercronic /code/tess.crontab &) \
-    && bundle exec rails server -b 0.0.0.0
+    && bundle exec puma -C config/puma.rb

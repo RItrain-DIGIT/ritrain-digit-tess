@@ -4,29 +4,28 @@ This guide describes the RItrain-DIGIT-specific setup and operational tasks for 
 
 ## Architecture
 
-The application and its supporting services run with Docker Compose. Compared with the upstream ELIXIR TeSS deployment, this fork adds an Nginx reverse proxy in a separate container in both development and production. Nginx terminates HTTPS and forwards requests to the Rails application.
+The application and its supporting services run with Docker Compose. In development, the Rails application is available directly on the host at `http://localhost:3000`; no Nginx container, custom hostname, or TLS certificate is needed. In production, a separate Nginx container terminates HTTPS and forwards requests to Puma through a Unix socket in a Docker volume shared by Nginx and the application.
 
 In **development**, the repository is mounted into the application container. Code changes are available immediately, and uploaded files are stored in the repository's `public/system` directory (which is ignored by Git).
 
 In **production**, the application runs from a Docker image that must be rebuilt when application code changes. Uploaded files are stored separately in the persistent Docker volume named `uploads`.
 
-Both Compose configurations publish HTTPS on port `443`. The Nginx configuration and certificates must therefore be in place before starting the stack.
+The production Compose configuration publishes HTTPS on port `443`. Its Nginx configuration and certificates must be in place before starting the production stack.
 
 ## Prerequisites
 
 - Git, Docker Engine, and the Docker Compose plugin.
-- A DNS name pointing to the host running the stack, with port `443` available. For the local development, you can just place the entry in `/etc/hosts`.
-- A valid Let's Encrypt certificate for that name, along with the corresponding Let's Encrypt configuration files.
+- For production: a DNS name pointing to the host, with port `443` available, and a valid Let's Encrypt certificate with its configuration files.
 
-The default hostname in this repository is `registry.hopto.org`. Replace it with the hostname for your deployment wherever it appears in the following configuration steps.
+The default production hostname in this repository is `registry.hopto.org`. Replace it with the hostname for your deployment wherever it appears in the following configuration steps. Development uses `localhost:3000` and does not require a hostname or certificate.
 
 ## Configuration
 
 ### Hostname and TLS
 
-1. For local development, bind the domain to localhost by adding an entry to `/etc/hosts`, e.g., `127.0.0.1 registry.hopto.org`.
+1. For production, set `TESS_BASE_HOST` in `.env` to the hostname that points to the deployment host.
 
-2. Update the Nginx server block in `nginx/sites-available/registry.hopto.org`: set `server_name` and the certificate paths to match your hostname. The `letsencrypt` directory in the repository root is mounted into the Nginx container at `/etc/letsencrypt`; its structure should match the usual `/etc/letsencrypt` directory, including the certificate files referenced by the Nginx configuration.
+2. Update the Nginx server block in `nginx/sites-enabled/tess`: set `server_name` and the certificate paths to match your hostname. The `letsencrypt` directory in the repository root is mounted into the Nginx container at `/etc/letsencrypt`; its structure should match the usual `/etc/letsencrypt` directory, including the certificate files referenced by the Nginx configuration.
 
 3. Create the environment and application configuration files:
 
@@ -55,7 +54,7 @@ docker compose run app yarn install
 docker compose up -d
 ```
 
-Open `https://<your-hostname>` in a browser. The development stack also includes Adminer, available at `http://localhost:8080` from the Docker host.
+Open `http://localhost:3000` in a browser. The development stack also includes Adminer, available at `http://localhost:8080` from the Docker host. Development does not start Nginx or require HTTPS.
 
 ### Production
 
@@ -79,6 +78,8 @@ docker compose -f docker-compose-prod.yml exec app bundle exec rake db:migrate
 ```
 
 Uploaded files are kept in the `uploads` volume when application containers are replaced. Back up this volume separately as described below.
+
+Nginx and Puma share the `puma-socket` volume for app traffic; no application TCP port is published in production.
 
 ### Import training materials
 

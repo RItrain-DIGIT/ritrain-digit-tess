@@ -1,3 +1,7 @@
+upstream rails_app {
+    server unix:/run/puma/puma.sock;
+}
+
 server {
 
     listen 443 ssl;
@@ -25,8 +29,7 @@ server {
     # -----------------
 
     location / {
-        # Name of docker container where the Rails app exists
-        proxy_pass  http://app:3000;
+        proxy_pass  http://rails_app;
     
     	proxy_set_header Host $host;
 	    proxy_set_header X-Real-IP $remote_addr;
