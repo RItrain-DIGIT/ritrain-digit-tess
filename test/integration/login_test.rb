@@ -69,18 +69,10 @@ class LoginTest < ActionDispatch::IntegrationTest
   end
 
   test 'sign in page renders EGI through the standard omniauth link' do
-    omniauth_configs = {
-      egi: OpenStruct.new(options: {
-        redirect_uris: ["https://#{TeSS::Config.base_uri.host}/users/auth/egi/callback"]
-      })
-    }
+    get '/users/sign_in'
 
-    Devise.stub(:omniauth_configs, omniauth_configs) do
-      get '/users/sign_in'
-
-      assert_response :success
-      assert_select "a[href='/users/auth/egi']", text: 'Login with EGI Check-In'
-    end
+    assert_response :success
+    assert_select "a[href='/users/auth/egi']", text: 'Login with EGI Check-In'
   end
 
   test 'sign in page hides omniauth links on an unsupported host' do

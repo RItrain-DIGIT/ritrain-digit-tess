@@ -95,7 +95,7 @@ class IndicoIngestorTest < ActiveSupport::TestCase
 
   test 'should test std err' do
     @ingestor.stub :fetch_calendar_content, ->(_url) { raise StandardError, 'test failure' } do
-      @ingestor.send(:process_url, 'https://indico.cern.ch/event/1617123/')
+      @ingestor.read('https://indico.cern.ch/event/1617123/')
 
       assert_equal 'Process file URL [https://indico.cern.ch/event/1617123/] failed with: test failure', @ingestor.messages.first
     end
@@ -103,7 +103,7 @@ class IndicoIngestorTest < ActiveSupport::TestCase
     calendar = Rails.root.join('test/fixtures/files/ingestion/indico/event.ics').read
     @ingestor.stub(:fetch_calendar_content, calendar) do
       @ingestor.stub(:process_calevent, ->(_event) { raise StandardError, 'test failure' }) do
-        @ingestor.send(:process_url, 'https://indico.cern.ch/event/1617123/')
+        @ingestor.read('https://indico.cern.ch/event/1617123/')
       end
     end
 
