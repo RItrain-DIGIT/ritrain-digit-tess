@@ -5,18 +5,38 @@ services:
     restart: unless-stopped
     privileged: true
     ports:
+      - '80:80'
       - '443:443'
     networks:
       default:
         aliases:
           - ${TESS_BASE_HOST}
+    environment:
+      TESS_BASE_HOST: ${TESS_BASE_HOST}
     volumes:
       - ./nginx:/etc/nginx
-      - ./etc/letsencrypt:/etc/letsencrypt
+      - ./docker/nginx-certbot-entrypoint.sh:/usr/local/bin/nginx-certbot-entrypoint:ro
+      - ./certbot/letsencrypt:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
       - uploads:/TeSS/public/system:ro
       - puma-socket:/run/puma
     depends_on:
       - app
+    command: ["/bin/sh", "/usr/local/bin/nginx-certbot-entrypoint"]
+  certbot:
+    container_name: ${PREFIX}-certbot
+    image: certbot/certbot:v5.9.0
+    restart: unless-stopped
+    environment:
+      TESS_BASE_HOST: ${TESS_BASE_HOST}
+      CERTBOT_EMAIL: ${CERTBOT_EMAIL}
+    volumes:
+      - ./docker/certbot-entrypoint.sh:/usr/local/bin/certbot-entrypoint:ro
+      - ./certbot/letsencrypt:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: ["/bin/sh", "/usr/local/bin/certbot-entrypoint"]
+    depends_on:
+      - nginx
   app:
     container_name: ${PREFIX}-app
     build:

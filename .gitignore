@@ -30,7 +30,15 @@ public/system
 coverage
 .env
 .env-production
-letsencrypt
+/letsencrypt
+/certbot/*
+!/certbot/www/
+!/certbot/letsencrypt/
+/certbot/www/*
+!/certbot/www/.gitkeep
+/certbot/letsencrypt/*
+!/certbot/letsencrypt/.gitkeep
+/nginx/sites-enabled/tess-ssl
 docker-volumes
 
 /config/master.key

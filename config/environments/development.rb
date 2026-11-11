@@ -5,7 +5,7 @@ Rails.application.configure do
 
   config.hosts << ENV["TESS_BASE_HOST"]
 
-  config.force_ssl = true
+  config.force_ssl = ENV.fetch("RAILS_FORCE_SSL", "false") == "true"
 
   # In the development environment your application's code is reloaded any time
   # it changes. This slows down response time but is perfect for development
