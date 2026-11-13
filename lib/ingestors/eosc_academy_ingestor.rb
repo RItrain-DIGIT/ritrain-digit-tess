@@ -209,8 +209,10 @@ module Ingestors
     # --------------------------------------------------
 
     def fetch_document(url)
-      response = URI.open(
-        url,
+      uri = URI.parse(url)
+      return nil unless uri.is_a?(URI::HTTP)
+
+      response = uri.open(
         'User-Agent' => USER_AGENT,
         'Accept' => 'text/html,application/xhtml+xml',
         open_timeout: OPEN_TIMEOUT,
