@@ -63,18 +63,21 @@ class User < ApplicationRecord
   after_update :react_to_role_change
   before_save :set_username_for_invitee
 
-  # Include default devise modules. Others available are: :lockable, :timeoutable
+  omniauth_providers = Devise.omniauth_configs.keys
+  # Include default devise modules (Ensure omniauthable is included in all feature flags)
+  devise :omniauthable, omniauth_providers: omniauth_providers
   if TeSS::Config.feature['login_through_oidc_only']
-    devise :database_authenticatable, :confirmable, :trackable, :validatable, :omniauthable, :authentication_keys => [:login]
+    devise :database_authenticatable, :confirmable, :trackable, :validatable,
+           :authentication_keys => [:login]
   elsif TeSS::Config.feature['registration']
     devise :database_authenticatable, :confirmable, :registerable, :invitable, :recoverable, :rememberable, :trackable,
-           :validatable, :omniauthable, :authentication_keys => [:login]
+           :validatable, :authentication_keys => [:login]
   elsif TeSS::Config.feature['invitation']
     devise :database_authenticatable, :confirmable, :invitable, :recoverable, :rememberable, :trackable,
-           :validatable, :omniauthable, :authentication_keys => [:login]
+           :validatable, :authentication_keys => [:login]
   else
     devise :database_authenticatable, :confirmable, :recoverable, :rememberable, :trackable, :validatable,
-           :omniauthable, :authentication_keys => [:login]
+           :authentication_keys => [:login]
   end
 
   auto_strip_attributes :username, squish: false
@@ -232,9 +235,17 @@ class User < ApplicationRecord
                       uid: auth.uid,
                       email: auth.info.email,
                       username: username,
+                      password: Devise.friendly_token[0, 20],
+                      processing_consent: '1', # Bypasses consents_to_processing validation
                       profile_attributes: { firstname: first_name, surname: last_name },
       )
-      user.skip_confirmation!
+
+      # Email verification logic
+      is_verified = auth.info.email_verified ||
+                    auth.extra&.raw_info&.email_verified ||
+                    auth.extra&.raw_info&.verified
+
+      user.skip_confirmation! if is_verified || !Rails.env.production?
     end
 
     user
