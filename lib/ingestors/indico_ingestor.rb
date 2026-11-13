@@ -152,7 +152,7 @@ module Ingestors
           'Accept' => 'text/calendar'
         }
 
-        content = URI.open(uri.to_s, options) do |response|
+        content = uri.open(options) do |response|
           status = response.status
           content_type = response.meta['content-type']
 
