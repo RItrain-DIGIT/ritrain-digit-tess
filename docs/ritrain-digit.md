@@ -127,6 +127,14 @@ The `backup_database.sh` script handles both database backups and restores. It d
 
 If the dump path is omitted, the script creates a timestamped file under `backup/`. For development, pass `development` instead of `production`.
 
+The production Compose configuration also runs a `dbbackups` service that stores database dumps in the `db-backups` Docker volume and removes backups older than seven days. It does not back up uploaded files. To list its dumps from the repository root on the production host:
+
+```sh
+docker compose -f docker-compose-prod.yml exec -T dbbackups find /backups -type f -name '*.dmp'
+```
+
+These dumps are separate from files in the host's `backup/` directory. The following sections describe how to restore them.
+
 ### Back up uploaded files
 
 The `backup_uploads.sh` script backs up the application's `public/system` directory. It uses the same environment detection and optional environment argument as the database script, including the `production` default when no app container is running.
@@ -141,7 +149,9 @@ If the archive path is omitted, the script creates a timestamped archive under `
 
 > **Warning:** Restoring a database replaces the entire configured database. Restoring uploaded files deletes the current contents of `public/system` before extracting the archive. Verify the target environment before proceeding.
 
-Each restore asks for confirmation (`y` or `Y`) and first saves the current database or uploaded files to a uniquely named `*_before_restore_*` file in `backup/`. A failed safety backup cancels the restore. Keep these backups outside the host as well.
+Each restore using the scripts below asks for confirmation (`y` or `Y`) and first saves the current database or uploaded files to a uniquely named `*_before_restore_*` file in `backup/`. A failed safety backup cancels the restore. Keep these backups outside the host as well.
+
+#### Restore a database with the script
 
 Restore a database dump with `backup_database.sh`:
 
@@ -149,7 +159,37 @@ Restore a database dump with `backup_database.sh`:
 ./scripts/backup_database.sh restore backup/2026-10-20/tess_20261020_081849.dump production
 ```
 
-Beside restoring database, the script stops and starts services automatically, does reindexing, etc. The target Compose services must be available, and `.env` must be configured in the repository root.
+The script stops and starts the app and Sidekiq, runs migrations, and reindexes Solr. The target Compose services must be available, and `.env` must be configured in the repository root.
+
+To restore a dump from the production `dbbackups` volume, first copy a selected file from the list above to an unused path on the host. Replace the example path with the actual container path:
+
+```sh
+mkdir -p backup
+docker compose -f docker-compose-prod.yml cp \
+   'dbbackups:/backups/PATH/TO/DUMP.dmp' backup/selected.dump
+head -c 5 backup/selected.dump
+```
+
+The default PostgreSQL custom-format dump starts with `PGDMP`. Check the format before restoring if the output differs. Once the dump is verified, restore it with:
+
+```sh
+./scripts/backup_database.sh restore backup/selected.dump production
+```
+
+#### Restore a database with dbbackups
+
+The `dbbackups` image also provides its own restore command. It reads the dump directly from the volume. This example targets a separate, non-existing test database; replace the archive path with one from the dump list:
+
+```sh
+docker compose -f docker-compose-prod.yml exec -T \
+   -e TARGET_DB=tess_restore_test \
+   -e TARGET_ARCHIVE='/backups/PATH/TO/DUMP.dmp' \
+   dbbackups /backup-scripts/restore.sh
+```
+
+> **Warning:** The image's restore implementation may drop and recreate an existing target database without confirmation or a safety backup. Choose a database name that does not exist. It does not stop the application, run migrations, or reindex Solr. Recent image versions also require the dump's `.meta.json` file alongside it. Verify the behavior of the deployed image before using it.
+
+#### Restore uploaded files
 
 Restore uploaded files from an archive with:
 
