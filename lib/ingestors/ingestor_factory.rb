@@ -21,7 +21,8 @@ module Ingestors
         Ingestors::EudatIngestor,
         Ingestors::EvitaIngestor,
         Ingestors::HpcPortalIngestor,
-        Ingestors::EoscAcademyIngestor
+        Ingestors::EoscAcademyIngestor,
+        Ingestors::PraceCodevaultIngestor
       ] + taxila_ingestors + llm_ingestors + heptraining_ingestors
     end
 

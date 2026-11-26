@@ -1,5 +1,7 @@
 require 'rest-client'
 require 'json'
+require 'ostruct'
+require 'cgi'
 
 module Ingestors
   class ZenodoIngestor < Ingestor
@@ -15,36 +17,103 @@ module Ingestors
       # paged query
       next_page = url
 
+      # Summary counters
+      total_hits = 0
+      total_pages = 0
+      failed_pages = Set.new
+      failed_attempts = 0
+      total_records = 0
+      processed_records = 0
+      records_with_doi = 0
+      records_without_doi = 0
+      errors = []
+
       begin
         # process each page
         until next_page.nil?
-          content = open_url(CGI.unescape_html(next_page))
+          current_page = next_page
 
-          if content
-            # format response
-            results = JSON.parse(content.read)
+          Rails.logger.info("Fetching: #{current_page}")
 
-            # extract materials from results
-            unless results['hits'].nil? and results['hits']['hits'].nil?
-              hits = results['hits']['hits']
-              hits.each do |item|
-                process_material item
-              end
+          begin
+            content = open_url(CGI.unescape_html(current_page))
+
+            if content.nil?
+              failed_pages << current_page
+              Rails.logger.error("[ZENODO] No response received for: #{current_page}")
             end
-          else
-            next_page = nil
-          end
 
-          # set next page
-          old_page = next_page
-          next_page = results['links']['next'] unless results['links'].nil? or results['links']['next'].nil?
-          next_page = nil if next_page == old_page
+            body = content.respond_to?(:read) ? content.read : content.to_s
+
+            if body.empty?
+              failed_pages << current_page
+              failed_attempts += 1
+              Rails.logger.error("[ZENODO] Empty response body for: #{current_page}")
+            end
+
+            results = JSON.parse(body)
+
+            total_pages += 1
+
+            # Total hits reported by Zenodo
+            total_hits = results.dig('hits', 'total').to_i
+
+            # Extract records
+            hits = results.dig('hits', 'hits') || []
+
+            total_records += hits.size
+
+            hits.each do |item|
+              if item['doi'].present?
+                records_with_doi += 1
+              else
+                records_without_doi += 1
+              end
+
+              title = item.dig('metadata', 'title').to_s
+              # Excluding Deliverables from the harvesting process
+              if title.match?(/\AD\d+(?:\.\d+)+/)
+                Rails.logger.info("[ZENODO] Skipping material: #{title}")
+                next
+              end
+
+              processed_records += 1 if process_material(item)
+            end
+
+            # Get next page from Zenodo
+            next_page = results.dig('links', 'next')
+
+            # Avoid pagination loops
+            if next_page == current_page
+              Rails.logger.warn("[ZENODO] Repeated page URL: #{next_page}")
+              next_page = nil
+            end
+          rescue StandardError => e
+            failed_pages << current_page
+            errors << "#{current_page}: #{e.message}"
+          end
         end
       rescue Exception => e
         @messages << "#{self.class.name} failed with: #{e.message}"
+      ensure
+        missing_records = [total_hits - total_records, 0].max
+
+        Rails.logger.info('')
+        Rails.logger.info('----------------------------------------------------')
+        Rails.logger.info('ZENODO SUMMARY REPORT')
+        Rails.logger.info('----------------------------------------------------')
+        Rails.logger.info("Total hits reported by Zenodo: #{total_hits}")
+        Rails.logger.info("Total pages retrieved: #{total_pages}")
+        Rails.logger.info("Failed pages (unique): #{failed_pages.size}")
+        Rails.logger.info("Failed attempts: #{failed_attempts}")
+        Rails.logger.info("Total records RETRIEVED: #{total_records}")
+        Rails.logger.info("Total records PROCESSED: #{processed_records}")
+        Rails.logger.info("Records with DOI: #{records_with_doi}")
+        Rails.logger.info("Records without DOI: #{records_without_doi}")
+        Rails.logger.info("Missing records: #{missing_records}")
+        Rails.logger.info('----------------------------------------------------')
       end
 
-      # finished
       nil
     end
 
