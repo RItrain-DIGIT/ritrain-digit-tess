@@ -233,7 +233,7 @@ en:
     team: >
       <div class="h4">Project Director</div>
       <ul><li>Giuseppe La Rocca, EGI F.</li></ul>
-      <div class="h4">Project Manager</div>
+      <div class="h4">Project Manager and Quality Manager</div>
       <ul><li>Małgorzata Krakowian, EGI F.</li></ul>
       <div class="h4">Innovation Manager</div>
       <ul><li>Elia Bellussi, EGI F.</li></ul>
@@ -255,28 +255,27 @@ en:
       <a class="btn btn-primary" href="mailto:info@ritrain-digit.eu"><i class="fa fa-envelope"> info@ritrain-digit.eu</i></a>
       </div>
     funding: >
-      The Training Registry has been funded by:
+      The RItrain-DIGIT Training Portal has been funded by:
       <ul>
-      <li>The <a href="https://cordis.europa.eu/project/id/101292852" target="_blank">RItrain-DIGIT project</a>, which has received funding from the European Commission’s Horizon Europe Research and Innovation programme under grant agreement No. 101292852</li>
-      <li>Unfunded contributions from the partners of the EGI Federation and PRACE</li>
+      <li>The <a href="https://www.ritrain-digit.eu" target="_blank">RItrain-DIGIT</a> project, which has received funding from the European Commission’s Horizon Europe Research and Innovation programme under grant agreement No. 101292852</li>
+      <li>Un-funded contributions of partners from the <a href="https://www.egi.eu/">EGI Federation</a> and <a href="https://prace-ri.eu/">PRACE</a></li>
       </ul>
       <p></p>
       <p>
         <a target="_blank" class="img-only-link" href="https://cordis.europa.eu/project/id/857641">
-        <img class="funding-logo" src="/assets/egi/eu_flag-ec2b7784ff81622a0cdfbc2747a5272c62c169650c0dc2a607a6c0e24f0a5b36.svg"/>
+          <img class="funding-logo" src="/assets/egi/eu_flag-ec2b7784ff81622a0cdfbc2747a5272c62c169650c0dc2a607a6c0e24f0a5b36.svg"/>
         </a>    
         <a target="_blank" class="img-only-link" href="https://egi.eu/">
-        <img class="funding-logo" src="/assets/egi/EGI_logo_normal_300px_height-511abc852df9e2c4fd23c4bc80a81f2077020745d22ee2f017ab05a36f6e5d11.png"/>
+          <img class="funding-logo" src="/assets/egi/EGI_logo_normal_300px_height-511abc852df9e2c4fd23c4bc80a81f2077020745d22ee2f017ab05a36f6e5d11.png"/>
         </a>                 
         <a target="_blank" class="img-only-link" href="https://prace-ri.eu/">
-        <img class="funding-logo" src="/assets/egi/PRACE_logo-012ac4d1927f6567730c2228e2555719f8065fc9bb31633085e542b1a13aa189.png"/>
-        <a>                 
-        </a>                 
+          <img class="funding-logo" src="/assets/egi/PRACE_logo-012ac4d1927f6567730c2228e2555719f8065fc9bb31633085e542b1a13aa189.png"/>
+        </a>
       </p>
 
     acknowledgements: >
       <p>The RItrain-DIGIT consortia would like to acknowledge the provision of the initial <a href="https://tess.elixir-europe.org/">TeSS</a> code from <a href="https://elixir-europe.org/">ELIXIR</a>, and thank the technical staff for useful discussions, feedback and assistance in developing this registry</p>
-      <p>The RItrain-DIGIT Training Registry is based on the <a href='https://elixir-europe.org/' target='_blank'>ELIXIR</a> TeSS platform.</p>
+      <p>The RItrain-DIGIT Training Portal is based on the <a href='https://elixir-europe.org/' target='_blank'>ELIXIR</a> TeSS platform.</p>
       <p>
         <center>
         <a target="_blank" href="https://tess.elixir-europe.org">
@@ -507,13 +506,13 @@ en:
         From the topic page, you can view all training materials, in order.</li></ol>
   home:
     welcome: |
-      Training Registry for <a href="https://cordis.europa.eu/project/id/101292852" target="_blank">
+      Training Portal for <a href="https://cordis.europa.eu/project/id/101292852" target="_blank">
       <img class="funding-logo" 
            style="width:400px; height:auto;" 
            src="/assets/egi/RItrain-DIGIT_logo-56e1f4c653cafe519ef02c18bb46b5e6fb343a111722e61e6c845a3e92d93b8d.png"/></a>
     subtitle: |
       Explore the registry to discover a wide range of learning resources, including courses, events, videos, learning pathways, and more...<br>
-      Access resources spanning diverse areas, skill levels, and area of expertise, supporting the use of computational approaches, <br>data-driven methods, and digitial technologies, including AI.
+      Access resources spanning diverse areas, skill levels, and area of expertise, supporting the use of computational approaches, <br>data-driven methods, and digital technologies, including AI.
     search_placeholder: >
       Search in the Registry...
     catalogue:
@@ -588,7 +587,7 @@ en:
       title: Connecting from %{country_name}?
       body: Visit the %{community_name} portal to browse local training.
   privacy:
-    description: "The %{site_name} Training Registry is a centralised, digital platform that serves as a single access point for training resources and opportunities, tailored to the needs of the Research Infrastructure workforce. <br/><br/>This privacy notice describes how we, the EGI Foundation (hereafter referred to as \"we\" or \"Data Controller\"), collect and process data by which you can be personally identified (\"Personal Data\") when you use the service."
+    description: "The %{site_name} Training Portal is a centralised, digital platform that serves as a single access point for training resources and opportunities, tailored to the needs of the Research Infrastructure workforce. <br/><br/>This privacy notice describes how we, the EGI Foundation (hereafter referred to as \"we\" or \"Data Controller\"), collect and process data by which you can be personally identified (\"Personal Data\") when you use the service."
     registration: "The following categories of personal data may be processed by the EGI Foundation as part of providing the aforementioned service:</br>
       <b>Identification data:</b>
       <ul>
@@ -658,8 +657,8 @@ en:
       <li><a href='https://www.geant.net/uri/dataprotection-code-of-conduct/v1'>Code of Conduct for Service Providers</a></li>
       <li><a href='https://documents.egi.eu/public/ShowDocument?docid=2732'>EGI-doc-2732-v3:Policy on the Processing of Personal Data</a></li>
       </ul>
-    controller: "The Data Controller for the %{site_name} Traiing Registry is The EGI Foundation."
-    protection: "The Data Protection Officier for the %{site_name} Training Registry is The EGI Foundation Data Protection Officer."
+    controller: "The Data Controller for the %{site_name} Training Portal is The EGI Foundation."
+    protection: "The Data Protection Officier for the %{site_name} Training Portal is The EGI Foundation Data Protection Officer."
     jurisdiction: "Jurisdiction: NL, Netherlands<br/> EGI Foundation's lead supervisory authority is the Dutch Data Protection Authority. <br/><br/>They can be contacted at: <a href='https://autoriteitpersoonsgegevens.nl/en/contact-dutch-dpa/contact-us'>https://autoriteitpersoonsgegevens.nl/en/contact-dutch-dpa/contact-us</a>"
     acknowledgement: "This privacy notice is based on the <a href='https://aarc-project.eu/policies/policy-development-kit/'>AARC Policy development kit</a> (licensed under <a href='https://creativecommons.org/licenses/by-nc-sa/4.0/'> CC-BY-NC-SA 4.0</a>)"
     post: "<strong>The EGI Foundation Team</strong><br/>Science Park 140,<br/>1098 XG Amsterdam,<br/>The Netherlands"
@@ -980,13 +979,13 @@ en:
          <a class="footer-logo" 
             target="_blank" 
             rel="noopener" 
-            href="https://ritrain-digit.eu">
+            href="https://www.ritrain-digit.eu">
          <img class="funding-logo" 
               style="width:150px; 
               height:auto;" 
               src="/assets/egi/RItrain-DIGIT_logo-56e1f4c653cafe519ef02c18bb46b5e6fb343a111722e61e6c845a3e92d93b8d.png"/></a>
          <div>
-         The Training Registry is supported through the <a href="https://cordis.europa.eu/programme/id/H2020" target="_blank" class="expands-footer-link">European Union's Horizon 2020 research and innovation programme</a>, <br>under grant agreement No. <a href="https://cordis.europa.eu/project/id/101292852" target="_blank" class="expands-footer-link">101292852</a>, and the unfunded contribution from the partners of the <a href="https://egi.eu.eu" target="_blank" class="expands-footer-link">EGI Federation</a> and <a href="https://prace-ri.eu" target="_blank" class="expands-footer-link">PRACE</a>
+         The RItrain-DIGIT Training Portal is a service provided by <a href="https://www.cyfronet.pl/en" target="_blank" class="expands-footer-link">CYFRONET</a>, funded by the European Union through <br>the <a href="https://www.ritrain-digit.eu/" target="_blank">RItrain-DIGIT</a> project (Grant Agreement <a href="https://cordis.europa.eu/project/id/101292852" target="_blank">No. 101292852</a>), and the un-funded contributions of partners from <br> the <a href="https://www.egi.eu/" target="_blank" class="expands-footer-link">EGI Federation</a>, and <a href="https://prace-ri.eu" target="_blank" class="expands-footer-link">PRACE</a>
          </div>
       </div>
   time:
