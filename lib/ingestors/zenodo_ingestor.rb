@@ -5,6 +5,12 @@ require 'cgi'
 
 module Ingestors
   class ZenodoIngestor < Ingestor
+    MAX_RETRIES = 5
+    MAX_RETRY_WAIT = 120
+    PAGE_DELAY = 5
+
+    RETRYABLE_HTTP_CODES = [429, 500, 502, 503, 504].freeze
+
     def self.config
       {
         key: 'zenodo',
@@ -33,23 +39,17 @@ module Ingestors
         until next_page.nil?
           current_page = next_page
 
-          Rails.logger.info("Fetching: #{current_page}")
+          Rails.logger.info("[ZENODO] Fetching: #{current_page}")
 
           begin
-            content = open_url(CGI.unescape_html(current_page))
+            body, attempts = fetch_zenodo_page(current_page)
 
-            if content.nil?
-              failed_pages << current_page
-              Rails.logger.error("[ZENODO] No response received for: #{current_page}")
-            end
+            failed_attempts += attempts
 
-            body = content.respond_to?(:read) ? content.read : content.to_s
+            # Delay between successful page requests
+            sleep(PAGE_DELAY)
 
-            if body.empty?
-              failed_pages << current_page
-              failed_attempts += 1
-              Rails.logger.error("[ZENODO] Empty response body for: #{current_page}")
-            end
+            raise 'Empty response body' if body.nil? || body.empty?
 
             results = JSON.parse(body)
 
@@ -71,6 +71,7 @@ module Ingestors
               end
 
               title = item.dig('metadata', 'title').to_s
+
               # Excluding Deliverables from the harvesting process
               if title.match?(/\AD\d+(?:\.\d+)+/)
                 Rails.logger.info("[ZENODO] Skipping material: #{title}")
@@ -91,10 +92,18 @@ module Ingestors
           rescue StandardError => e
             failed_pages << current_page
             errors << "#{current_page}: #{e.message}"
+            Rails.logger.error("[ZENODO] Failed page: #{current_page}")
+            Rails.logger.error("[ZENODO] #{e.class}: #{e.message}")
+
+            # Stop pagination rather than retrying the same
+            # page indefinitely outside the retry mechanism.
+            next_page = nil
+            break
           end
         end
       rescue Exception => e
         @messages << "#{self.class.name} failed with: #{e.message}"
+        Rails.logger.error("[ZENODO] Ingestor failed: #{e.class} - #{e.message}")
       ensure
         missing_records = [total_hits - total_records, 0].max
 
@@ -111,13 +120,95 @@ module Ingestors
         Rails.logger.info("Records with DOI: #{records_with_doi}")
         Rails.logger.info("Records without DOI: #{records_without_doi}")
         Rails.logger.info("Missing records: #{missing_records}")
-        Rails.logger.info('----------------------------------------------------')
+
+        unless failed_pages.empty?
+          Rails.logger.warn('[ZENODO] Failed page URLs:')
+
+          failed_pages.each do |page|
+            Rails.logger.warn("[ZENODO] #{page}")
+          end
+        end
+
+        unless errors.empty?
+          Rails.logger.warn('[ZENODO] Errors:')
+
+          errors.each do |error|
+            Rails.logger.warn("[ZENODO] #{error}")
+          end
+        end
       end
 
       nil
     end
 
     private
+
+    # Fetch Zenodo API page with retry and exponential backoff.
+    def fetch_zenodo_page(url, max_retries: MAX_RETRIES)
+      retries = 0
+
+      begin
+        content = open_url(CGI.unescape_html(url))
+        raise 'No response received from Zenodo' if content.nil?
+
+        body = content.respond_to?(:read) ? content.read : content.to_s
+        raise 'Empty response body from Zenodo' if body.empty?
+
+        [body, retries]
+      rescue RestClient::Exception => e
+        status = e.response&.code.to_i
+        retryable = RETRYABLE_HTTP_CODES.include?(status) ||
+                    e.response.nil?
+
+        raise unless retryable
+
+        retries += 1
+
+        if retries > max_retries
+          Rails.logger.error("[ZENODO] Maximum retries exceeded for #{url}: #{e.message}")
+          raise
+        end
+
+        retry_after = e.response&.headers&.[](:retry_after)
+
+        wait_time =
+          if retry_after
+            retry_after.to_f
+          else
+            2**retries
+          end
+
+        wait_time = [[wait_time, MAX_RETRY_WAIT].min, 1].max
+
+        Rails.logger.warn(
+          "[ZENODO] HTTP #{status} - retry #{retries}/#{max_retries} " \
+          "in #{wait_time} seconds"
+        )
+
+        sleep(wait_time)
+        retry
+      rescue StandardError => e
+        retries += 1
+        if retries > max_retries
+
+          Rails.logger.error(
+            "[ZENODO] Request failed after #{max_retries} retries: " \
+            "#{e.class} - #{e.message}"
+          )
+          raise
+        end
+
+        wait_time = [2**retries, MAX_RETRY_WAIT].min
+
+        Rails.logger.warn(
+          "[ZENODO] Request error: #{e.class} - #{e.message}. " \
+          "Retry #{retries}/#{max_retries} in #{wait_time} seconds"
+        )
+
+        sleep(wait_time)
+        retry
+      end
+    end
 
     def process_material(input)
       # map top-level tags
@@ -157,15 +248,17 @@ module Ingestors
 
         end
         material.url = links['self_html'] if !links.nil? && !links['self_html'].nil?
+        Rails.logger.info("[ZENODO] #{material.title}")
 
         # add material to array
         add_material material
+        true
       rescue Exception => e
-        @messages << "#{self.class.name} extract material fields failed with: #{e.message}"
+        message = "#{self.class.name} extract material fields failed with: #{e.message}"
+        @messages << message
+        Rails.logger.error("[ZENODO] #{message}")
+        false
       end
-
-      # finished
-      nil
     end
 
     def process_description(input)
