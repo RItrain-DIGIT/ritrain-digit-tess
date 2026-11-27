@@ -142,7 +142,7 @@ default: &default
     directory_tabs: ['trainers', 'content_providers', 'nodes', 'spaces']
     # The order in with the 'about us' tabs appear
     about_us_tab_order: ['contact', 'team', 'funding', 'acknowledgements']
-    n_provider_ids: 5
+    n_provider_ids: 7
     calendar_event_maxlength: 5
     content_provider_grid_long: true # true for full width in grid, false for short
     show_provider_logo_in_event: false
